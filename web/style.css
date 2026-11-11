@@ -35,8 +35,9 @@ a { color: inherit; text-underline-offset: 3px; }
 button, input, textarea, select { font: inherit; color: inherit; }
 
 /* Top bar */
+.bar, .foot { --edge: max(32px, calc((100vw - 1360px) / 2 + 32px)); }
 .bar {
-  display: flex; align-items: center; gap: 24px; padding: 14px 32px;
+  display: flex; align-items: center; gap: 24px; padding: 14px var(--edge);
   border-bottom: 1px solid var(--rule); flex-wrap: wrap;
 }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -.01em; }
@@ -62,7 +63,7 @@ main { flex: 1; padding: 0 32px 48px; max-width: 1360px; width: 100%; margin: 0 
 
 /* The enclave overlay */
 .overlay { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 5; }
-.stage { height: 270px; }
+.stage { height: 230px; }
 .ledger { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-soft); min-height: 46px; }
 .ledger ol { list-style: none; display: flex; gap: 14px; margin: 0; padding: 0; flex-wrap: wrap; }
 .ledger li { position: relative; }
@@ -75,28 +76,30 @@ main { flex: 1; padding: 0 32px 48px; max-width: 1360px; width: 100%; margin: 0 
 @keyframes land { from { transform: scale(.4); opacity: 0; } }
 
 /* Conflict room */
-.room { display: grid; grid-template-columns: 1fr minmax(280px, 340px) 1fr; gap: 28px; align-items: start; }
-.firm { background: var(--sheet); border: 1px solid var(--rule); display: flex; flex-direction: column; min-height: 520px; }
+.room { display: grid; grid-template-columns: 1fr minmax(280px, 340px) 1fr; gap: 28px; align-items: stretch; }
+.firm { background: var(--sheet); border: 1px solid var(--rule); display: flex; flex-direction: column; }
 .firm > header { padding: 18px 20px 12px; border-bottom: 1px solid var(--rule); }
 .firm h2 { margin: 0; font-size: 18px; font-weight: 600; }
 .firm-role { margin: 2px 0 0; color: var(--ink-soft); font-size: 14px; }
 .list { list-style: none; margin: 0; padding: 10px 20px; flex: 1; counter-reset: row; }
 .list li {
-  position: relative; padding: 7px 0 7px 30px; border-bottom: 1px solid color-mix(in srgb, var(--rule) 50%, transparent);
+  position: relative; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; padding: 7px 0 7px 30px; border-bottom: 1px solid color-mix(in srgb, var(--rule) 50%, transparent);
   font-size: 15px; counter-increment: row;
 }
 .list li::before { content: counter(row); position: absolute; left: 0; width: 22px; text-align: right; color: var(--ink-soft); font-size: 12px; top: 10px; }
-.list .name { position: relative; display: inline-block; max-width: calc(100% - 72px); }
-.list .role { color: var(--ink-soft); font-size: 13px; margin-left: 8px; }
-.list .name::after {
-  content: ""; position: absolute; inset: 2px -3px; background: var(--redact);
-  transform: scaleX(0); transform-origin: left; transition: transform .45s cubic-bezier(.7,0,.2,1);
-  transition-delay: calc(var(--i, 0) * 35ms);
+.list .name {
+  position: relative; max-width: 100%;
+  /* The redaction bar is a background on the text itself, so it follows every line it wraps onto. */
+  background-image: linear-gradient(var(--redact), var(--redact));
+  background-repeat: no-repeat; background-position: left center; background-size: 0% 100%;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone; padding: 1px 3px; margin: 0 -3px;
+  transition: background-size .45s cubic-bezier(.7,0,.2,1), color .2s; transition-delay: calc(var(--i, 0) * 35ms);
 }
-.firm[data-sealed] .list .name::after { transform: scaleX(1); }
-.firm[data-sealed] .list .role { visibility: hidden; }
-.firm[data-sealed] .list li.match .name::after { transform: scaleX(0); transition-delay: calc(var(--i, 0) * 80ms + 200ms); }
-.firm[data-sealed] .list li.match .role { visibility: visible; }
+.list .role { color: var(--ink-soft); font-size: 13px; }
+.firm[data-sealed] .list .name { background-size: 100% 100%; color: transparent; }
+.firm[data-sealed] .list .role { display: none; }
+.firm[data-sealed] .list li.match .name { background-size: 0% 100%; color: var(--oxblood); transition-delay: calc(var(--i, 0) * 80ms + 200ms); }
+.firm[data-sealed] .list li.match .role { display: inline; }
 .list li.match { background: color-mix(in srgb, var(--oxblood) 9%, transparent); }
 .list li.match .name { font-weight: 600; color: var(--oxblood); }
 .firm > footer { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--rule); }
@@ -109,7 +112,7 @@ main { flex: 1; padding: 0 32px 48px; max-width: 1360px; width: 100%; margin: 0 
 .firm[data-sealed] .seal-btn { background: none; color: var(--teal); padding: 9px 0; cursor: default; }
 .commit { font-size: 12px; color: var(--ink-soft); padding: 0 20px 12px; margin: 0; }
 
-.middle { position: sticky; top: 20px; }
+.middle { position: sticky; top: 20px; align-self: start; }
 .steps { list-style: none; margin: 0 0 18px; padding: 0; counter-reset: s; }
 .steps li {
   counter-increment: s; position: relative; padding: 8px 0 8px 40px; color: var(--ink-soft); font-size: 15px;
@@ -189,17 +192,21 @@ main { flex: 1; padding: 0 32px 48px; max-width: 1360px; width: 100%; margin: 0 
 .record dt { color: var(--ink-soft); }
 .record dd { margin: 0; }
 
-.foot { display: flex; gap: 28px; flex-wrap: wrap; padding: 14px 32px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-soft); }
+.foot { display: flex; gap: 28px; flex-wrap: wrap; padding: 14px var(--edge); border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-soft); }
 
 @media (max-width: 1040px) {
   .room { grid-template-columns: 1fr; }
-  .middle { position: static; order: 3; }
-  .firm { min-height: 0; }
+  .middle { position: static; display: grid; grid-template-columns: 200px 1fr; gap: 0 24px; align-items: center; }
+  .middle .stage { height: 200px; grid-row: span 2; }
+  .middle .steps { margin: 0; }
+  .middle > :not(.stage):not(.steps) { grid-column: 1 / -1; }
   .agent { grid-template-columns: 1fr; }
   .agent-stage { position: static; }
   .agent-stage .stage { height: 220px; }
 }
 @media (max-width: 640px) {
+  .middle { grid-template-columns: 1fr; }
+  .middle .stage { height: 190px; grid-row: auto; }
   .bar, main, .foot { padding-left: 16px; padding-right: 16px; }
   .bar { gap: 12px; }
   .tabs { order: 3; flex: 1 0 100%; overflow-x: auto; }
