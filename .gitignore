@@ -7,3 +7,4 @@ __pycache__/
 *.envelope.json
 verdict*.json
 .DS_Store
+.state/
