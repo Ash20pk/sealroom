@@ -1,0 +1,49 @@
+[
+  {
+    "id": "HB-01",
+    "title": "Halverson Beverage Holdings: 2027 distribution strategy",
+    "labels": [
+      "client:halverson"
+    ],
+    "text": "Halverson plans to exit three regional bottling contracts in Q2 2027 and consolidate distribution through a single logistics partner. Board approval expected in January. Confidential pricing floor: 4% below current list."
+  },
+  {
+    "id": "HB-02",
+    "title": "Halverson Beverage Holdings: supplier dispute memo",
+    "labels": [
+      "client:halverson"
+    ],
+    "text": "Halverson's dispute with its glass supplier is likely to settle for under $2M. Litigation hold remains in place."
+  },
+  {
+    "id": "LT-01",
+    "title": "Lumenra Textiles: EU sustainability reporting",
+    "labels": [
+      "client:lumenra"
+    ],
+    "text": "Lumenra must publish its first CSRD report for FY2026. Gaps: Scope 3 emissions data from two dye suppliers in Portugal. Recommended: supplier attestation templates by March."
+  },
+  {
+    "id": "OB-01",
+    "title": "Kestrel patent matter: Orrin Biologics prior art review",
+    "labels": [
+      "client:kestrel",
+      "adverse:orrin"
+    ],
+    "text": "Three prior-art references weaken Orrin Biologics' claim 4. Strategy: move for partial summary judgment after the Markman hearing."
+  },
+  {
+    "id": "GW-01",
+    "title": "Glasswing Ventures: fund III side letters",
+    "labels": [
+      "client:glasswing"
+    ],
+    "text": "Fund III has 14 side letters; 3 contain MFN clauses that conflict with the new co-investment policy. Recommend notifying LPs before the March close."
+  },
+  {
+    "id": "MEMO-7",
+    "title": "Unfiled memo from the shared drive",
+    "labels": [],
+    "text": "Notes from a call about a possible acquisition. Parties not recorded."
+  }
+]

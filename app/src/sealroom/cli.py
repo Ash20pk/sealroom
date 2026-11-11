@@ -5,6 +5,8 @@
   sealroom check INCOMING.env.json EXISTING.env.json [--record-as ACCOUNT]
   sealroom verify CHECK_ID             anyone: re-check an on-chain record
   sealroom prove CHECK_ID LIST.csv SECRET.json   a firm proves which list it submitted
+  sealroom agent --person P --question Q --library L [--verdict V] [--seal-as A]
+  sealroom verify-session SESSION.json  re-check a session log against NEAR
 """
 
 from __future__ import annotations
@@ -127,6 +129,69 @@ def cmd_prove(a) -> None:
     sys.exit(0 if hit else 1)
 
 
+def _slug(name: str) -> str:
+    import re
+
+    return "client:" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def cmd_agent(a) -> None:
+    from dataclasses import asdict
+
+    from .agent import load_library, run
+    from .barrier import Policy, Session, policy_from_verdict
+
+    labels = json.loads(Path(a.labels).read_text()) if a.labels else {}
+    if a.verdict:
+        verdict = json.loads(Path(a.verdict).read_text())["verdict"]
+        policy = policy_from_verdict(verdict, a.person, lambda n: labels.get(n, _slug(n)))
+        _p(f"barrier: {a.person} screened from {sorted(policy.screens.get(a.person, []))} (from the conflict check)")
+    else:
+        policy = Policy()
+    for w in a.wall or []:
+        x, y = w.split("|")
+        policy.wall(x.strip(), y.strip())
+    session = Session(a.person, policy)
+    m = verify_model(a.model)
+    _p(f"✓ attested {m.model}; session {session.id} for {a.person}")
+
+    def step(t):
+        act = t.action
+        if act.get("action") == "read":
+            d = t.decision
+            mark = "ALLOW" if d["allowed"] else "BLOCK"
+            _p(f"  read {act.get('id'):8} -> {mark}   [reviewer: {d['reason']}]   tee-signed {t.chat_id[:14]}…")
+        else:
+            _p("  answer")
+
+    r = run(a.question, session, load_library(Path(a.library)), m, on_step=step)
+    print(r.answer)
+    export = {"run": r.to_json(), "policy": policy.to_json(), "log": [asdict(d) for d in session.log], "log_root": session.head}
+    if a.seal_as:
+        res = chain.call(a.seal_as, "seal_session", {
+            "session_id": session.id, "log_root": session.head,
+            "decisions": len(session.log), "blocked": session.blocked,
+        })
+        export["chain"] = {"contract": chain.CONTRACT, "tx": res["tx"], "url": chain.tx_url(res["tx"])}
+        _p(f"✓ session log sealed on NEAR: {chain.tx_url(res['tx'])}")
+    out = Path(a.out or f"session-{session.id}.json")
+    out.write_text(json.dumps(export, indent=2))
+    _p(f"→ {out}")
+
+
+def cmd_verify_session(a) -> None:
+    from .barrier import verify_log
+
+    exp = json.loads(Path(a.export).read_text())
+    root = verify_log(exp["log"])
+    rec = chain.view("get_session", {"session_id": exp["run"]["session_id"]})
+    if not rec:
+        sys.exit("session not sealed on chain")
+    ok = rec["log_root"] == root and rec["decisions"] == len(exp["log"])
+    _p(("✓ decision log matches the root sealed on NEAR" if ok else "✗ decision log does NOT match the sealed root") + f" ({len(exp['log'])} decisions, {rec['blocked']} blocked)")
+    sys.exit(0 if ok else 1)
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(prog="sealroom")
     ap.add_argument("--model", default=DEFAULT_MODEL)
@@ -153,6 +218,19 @@ def main(argv=None) -> None:
     p.add_argument("list")
     p.add_argument("secret")
     p.set_defaults(fn=cmd_prove)
+    g = sub.add_parser("agent", help="run the research agent under barriers")
+    g.add_argument("--person", required=True)
+    g.add_argument("--question", required=True)
+    g.add_argument("--library", required=True)
+    g.add_argument("--verdict", help="verdict.json from a conflict check; conflicts become screens")
+    g.add_argument("--labels", help="JSON map of party name -> label")
+    g.add_argument("--wall", action="append", help='"label-a | label-b"')
+    g.add_argument("--seal-as", help="NEAR account that seals the session log")
+    g.add_argument("--out")
+    g.set_defaults(fn=cmd_agent)
+    vs = sub.add_parser("verify-session")
+    vs.add_argument("export")
+    vs.set_defaults(fn=cmd_verify_session)
     a = ap.parse_args(argv)
     a.fn(a)
 
