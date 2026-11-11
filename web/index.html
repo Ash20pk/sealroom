@@ -7,13 +7,14 @@
 <meta name="description" content="Conflict checks and ethical walls for legal AI, computed inside an attested enclave and provable on NEAR.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="backdrop" aria-hidden="true"></div>
 <header class="bar">
   <div class="brand">
-    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="26" height="4"/><rect x="3" y="14" width="18" height="4"/><rect x="3" y="21" width="22" height="4"/></svg>
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="26" height="5" rx="2.5"/><rect x="3" y="13.5" width="17" height="5" rx="2.5"/><rect x="3" y="21" width="22" height="5" rx="2.5"/></svg>
     <span>Sealroom</span>
   </div>
   <nav class="tabs" role="tablist">
@@ -27,15 +28,22 @@
 </header>
 
 <main>
-  <!-- Conflict check -->
   <section id="tab-check" class="tab" role="tabpanel">
     <div class="intro">
-      <h1>Check a lateral hire for conflicts without either firm showing its client list.</h1>
-      <p>Each list is encrypted in this browser to a model running in an Intel TDX enclave. Only matched pairs come back. The proof goes on NEAR.</p>
+      <h1>Check a lateral hire for conflicts. Neither firm shows its client list.</h1>
+      <p>Each list is encrypted in this browser to a model running in an Intel TDX enclave. Only matched pairs come back, and the proof goes on NEAR.</p>
     </div>
 
+    <ol class="steps" id="steps">
+      <li data-step="attest">Confirm the enclave is attested</li>
+      <li data-step="seal">Each firm seals its own list</li>
+      <li data-step="send">Send both sealed lists</li>
+      <li data-step="sign">Check the enclave's signature</li>
+      <li data-step="anchor">Record the proof on NEAR</li>
+    </ol>
+
     <div class="room">
-      <article class="firm" id="firm-incoming" data-side="incoming">
+      <article class="firm card" id="firm-incoming" data-side="incoming">
         <header>
           <h2 class="firm-name">Incoming partner</h2>
           <p class="firm-role">The incoming partner's former clients and adverse parties</p>
@@ -49,20 +57,13 @@
 
       <div class="middle">
         <div class="stage" id="stage-check" role="img" aria-label="The enclave: a sealed, attested machine. Both lists go in encrypted; only matches come out."></div>
-        <ol class="steps" id="steps">
-          <li data-step="attest">Confirm the model runs in an attested enclave</li>
-          <li data-step="seal">Each firm seals its own list in the browser</li>
-          <li data-step="send">Send both sealed lists in one request</li>
-          <li data-step="sign">Check the enclave's signature on the reply</li>
-          <li data-step="anchor">Record the proof on NEAR</li>
-        </ol>
         <button class="primary" id="run-check" disabled>Run conflict check</button>
         <p class="hint" id="check-hint">Seal both lists to start.</p>
-        <div class="verdict" id="verdict" hidden></div>
+        <div class="verdict card" id="verdict" hidden></div>
         <div class="ledger" id="ledger-check"><span>Records on NEAR</span><ol></ol></div>
       </div>
 
-      <article class="firm" id="firm-existing" data-side="existing">
+      <article class="firm card" id="firm-existing" data-side="existing">
         <header>
           <h2 class="firm-name">Receiving firm</h2>
           <p class="firm-role">The receiving firm's clients and adverse parties</p>
@@ -76,18 +77,17 @@
     </div>
   </section>
 
-  <!-- Agent -->
   <section id="tab-agent" class="tab" role="tabpanel" hidden>
     <div class="intro">
       <h1>Let the incoming partner use the firm's research agent, with the conflict walled off.</h1>
       <p>Every read is decided before the document reaches the model. The agent gets the same refusal whatever the reason, so it can't learn who the firm acts for.</p>
     </div>
     <div class="agent">
-      <form class="ask" id="ask">
+      <form class="ask card" id="ask">
         <label for="person">Working as</label>
         <input id="person" value="jane.okafor" autocomplete="off">
         <label for="question">Question</label>
-        <textarea id="question" rows="3">Give me a short brief on our beverage and textile clients' current plans.</textarea>
+        <textarea id="question" rows="4">Give me a short brief on our beverage and textile clients' current plans.</textarea>
         <label class="check"><input type="checkbox" id="use-verdict" checked> Wall off the conflicts from the last check</label>
         <button class="primary" type="submit">Ask the agent</button>
       </form>
@@ -96,7 +96,7 @@
         <ul class="legend"><li><span class="key allow"></span>Allowed reads pass into the enclave</li><li><span class="key block"></span>Blocked reads stop at the wall</li></ul>
         <div class="ledger" id="ledger-agent"><span>Sealed sessions on NEAR</span><ol></ol></div>
       </div>
-      <div class="transcript">
+      <div class="transcript card">
         <div class="lens" role="radiogroup" aria-label="Whose view">
           <button role="radio" aria-checked="true" data-lens="agent">What the agent sees</button>
           <button role="radio" aria-checked="false" data-lens="reviewer">What a reviewer sees</button>
@@ -107,21 +107,22 @@
     </div>
   </section>
 
-  <!-- Verify -->
   <section id="tab-verify" class="tab" role="tabpanel" hidden>
     <div class="intro">
       <h1>Anyone can check a record.</h1>
       <p>Look up a conflict check or a sealed agent session on NEAR and re-run the checks yourself.</p>
     </div>
-    <form class="lookup" id="lookup">
-      <select id="kind" aria-label="Record type">
-        <option value="check">Conflict check number</option>
-        <option value="session">Agent session id</option>
-      </select>
-      <input id="ref" placeholder="0" autocomplete="off" aria-label="Record">
-      <button class="primary" type="submit">Verify</button>
-    </form>
-    <div id="verify-out"></div>
+    <div class="verify card">
+      <form class="lookup" id="lookup">
+        <select id="kind" aria-label="Record type">
+          <option value="check">Conflict check number</option>
+          <option value="session">Agent session id</option>
+        </select>
+        <input id="ref" placeholder="0" autocomplete="off" aria-label="Record">
+        <button class="primary" type="submit">Verify</button>
+      </form>
+      <div id="verify-out"></div>
+    </div>
   </section>
 </main>
 

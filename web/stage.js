@@ -63,7 +63,7 @@ export class Stage {
     this.shell.geometry.setDrawRange(0, reduced ? Infinity : 0);
     this.root.add(this.shell);
 
-    this.faceMat = new THREE.MeshBasicMaterial({ color: this.c.ink, transparent: true, opacity: 0.035, depthWrite: false });
+    this.faceMat = new THREE.MeshBasicMaterial({ color: this.c.ink, transparent: true, opacity: 0.06, depthWrite: false });
     this.root.add(new THREE.Mesh(new THREE.BoxGeometry(S, S, S), this.faceMat));
 
     // Inner lattice: measured memory, the part attestation covers.
@@ -154,7 +154,11 @@ export class Stage {
     if (visible) {
       this.root.position.copy(c);
       this.ringGroup.position.copy(c);
-      this.wall.position.set(c.x + this.size * 1.2, c.y, 50);
+      const br = this.anchorEl.getBoundingClientRect();
+      this.fit = Math.max(0.7, Math.min(1.5, Math.min(br.width, br.height) / 230));
+      this.ringGroup.scale.setScalar(this.fit);
+      this.wall.scale.setScalar(this.fit); this.wallEdge.scale.setScalar(this.fit);
+      this.wall.position.set(c.x + this.size * 1.2 * this.fit, c.y, 50);
       this.wallEdge.position.copy(this.wall.position);
     }
 
@@ -177,7 +181,7 @@ export class Stage {
       this.ring.rotation.y -= dt * (0.25 + this.energy * 1.2);
     }
     const s = 1 + this.pulse * 0.08 + this.energy * Math.sin(t * 9) * 0.02;
-    this.root.scale.setScalar(s);
+    this.root.scale.setScalar(s * (this.fit || 1));
     this.core.scale.setScalar(1 + this.energy * 0.5 + this.pulse * 0.6);
     this.coreMat.opacity = 0.45 + this.energy * 0.45;
 
