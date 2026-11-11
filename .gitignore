@@ -1,0 +1,9 @@
+target/
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+*.secret.json
+*.envelope.json
+verdict*.json
+.DS_Store

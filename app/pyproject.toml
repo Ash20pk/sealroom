@@ -1,0 +1,26 @@
+[project]
+name = "sealroom"
+version = "0.1.0"
+description = "Provable conflict checks and ethical walls for legal AI, on NEAR"
+authors = [
+    { name = "Aswin Kumar", email = "ash20pk@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=50.0.2",
+    "dcap-qvl>=0.7.1",
+    "httpx>=0.28.1",
+    "pynacl>=1.6.2",
+]
+
+[project.scripts]
+sealroom = "sealroom.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
