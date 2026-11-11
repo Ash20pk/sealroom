@@ -91,7 +91,7 @@ class Session:
             resource=resource,
             labels=sorted(labels),
             allowed=reason is None,
-            reason=reason or "allowed",
+            reason=reason or "no barrier applies",
         )
         entry = asdict(d)
         entry.pop("hash")

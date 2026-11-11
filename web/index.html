@@ -48,6 +48,7 @@
       </article>
 
       <div class="middle">
+        <div class="stage" id="stage-check" role="img" aria-label="The enclave: a sealed, attested machine. Both lists go in encrypted; only matches come out."></div>
         <ol class="steps" id="steps">
           <li data-step="attest">Confirm the model runs in an attested enclave</li>
           <li data-step="seal">Each firm seals its own list in the browser</li>
@@ -58,6 +59,7 @@
         <button class="primary" id="run-check" disabled>Run conflict check</button>
         <p class="hint" id="check-hint">Seal both lists to start.</p>
         <div class="verdict" id="verdict" hidden></div>
+        <div class="ledger" id="ledger-check"><span>Records on NEAR</span><ol></ol></div>
       </div>
 
       <article class="firm" id="firm-existing" data-side="existing">
@@ -89,6 +91,11 @@
         <label class="check"><input type="checkbox" id="use-verdict" checked> Wall off the conflicts from the last check</label>
         <button class="primary" type="submit">Ask the agent</button>
       </form>
+      <div class="agent-stage">
+        <div class="stage" id="stage-agent" role="img" aria-label="The enclave behind its barrier. Allowed reads pass through; blocked reads stop at the wall."></div>
+        <ul class="legend"><li><span class="key allow"></span>Allowed reads pass into the enclave</li><li><span class="key block"></span>Blocked reads stop at the wall</li></ul>
+        <div class="ledger" id="ledger-agent"><span>Sealed sessions on NEAR</span><ol></ol></div>
+      </div>
       <div class="transcript">
         <div class="lens" role="radiogroup" aria-label="Whose view">
           <button role="radio" aria-checked="true" data-lens="agent">What the agent sees</button>

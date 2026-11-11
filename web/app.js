@@ -1,4 +1,5 @@
 import _sodium from "https://cdn.jsdelivr.net/npm/libsodium-wrappers-sumo@0.7.15/+esm";
+import { Stage } from "./stage.js";
 
 await _sodium.ready;
 const sodium = _sodium;
@@ -9,6 +10,10 @@ const hex = (b) => [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
 const unhex = (h) => Uint8Array.from(h.match(/../g).map((x) => parseInt(x, 16)));
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const short = (h, n = 10) => (h && h.length > n * 2 ? `${h.slice(0, n)}…${h.slice(-4)}` : h || "");
+
+let stage = null;
+try { stage = new Stage(); } catch (e) { console.warn("3D view unavailable", e); }
+const S = new Proxy({}, { get: (_, k) => (...a) => (stage ? stage[k](...a) : Promise.resolve()) });
 
 let config = null;
 let model = null;
@@ -128,11 +133,13 @@ async function attest(fresh = false) {
     if (!r.ok) throw new Error((await r.json()).detail);
     model = await r.json();
     dot.dataset.state = "ok";
+    S.setState("ok");
     $("#enclave-text").textContent = `Enclave verified, ${model.tcb_status === "UpToDate" ? "firmware up to date" : model.tcb_status}`;
     $("#model-name").textContent = model.model;
     step("attest", "done", `Model key <span class="mono">${short(model.signing_key)}</span>`);
   } catch (e) {
     dot.dataset.state = "bad";
+    S.setState("bad");
     $("#enclave-text").textContent = "Enclave not verified";
     step("attest", "fail", esc(e.message));
   }
@@ -153,8 +160,11 @@ function setupFirm(side, file) {
   });
   $(".seal-btn", el).addEventListener("click", async () => {
     if (el.dataset.sealed !== undefined || !model) return;
+    $(".seal-btn", el).textContent = "Sealing…";
     await sealList(side);
     el.dataset.sealed = "";
+    await new Promise((r) => setTimeout(r, 380));
+    await S.absorb($$(".list .name", el));
     $(".seal-btn", el).textContent = "Sealed to the enclave";
     el.insertAdjacentHTML("beforeend",
       `<p class="commit">Commitment <span class="mono">${short(firms[side].envelope.commitment, 12)}</span> · <a href="#" class="receipt">Save receipt</a></p>`);
@@ -172,6 +182,7 @@ $("#run-check").addEventListener("click", async () => {
   const btn = $("#run-check");
   btn.disabled = true;
   step("send", "busy", "Only ciphertext goes to the server");
+  S.working(true);
   try {
     const r = await fetch("/api/check", {
       method: "POST", headers: { "content-type": "application/json" },
@@ -179,11 +190,18 @@ $("#run-check").addEventListener("click", async () => {
     });
     const body = await r.json();
     if (!r.ok) throw new Error(body.detail);
+    S.working(false);
     step("send", "done", `Reply <span class="mono">${short(body.completion.chat_id, 8)}</span>`);
     step("sign", "done", `Signed by <span class="mono">${short(body.completion.signing_address)}</span>`);
+    await showVerdict(body);
+    step("anchor", "busy");
+    await S.drop($("#ledger-check"));
+    addLedger("#ledger-check", `#${body.check_id}`, body.tx_url, `Check ${body.check_id} on NEAR`);
     step("anchor", "done", `Check #${esc(body.check_id)} on NEAR`);
-    showVerdict(body);
+    btn.textContent = "Check recorded";
+    $("#check-hint").textContent = "Reload the page to run another check.";
   } catch (e) {
+    S.working(false);
     ["send", "sign", "anchor"].forEach((s) => $(`#steps [data-step="${s}"]`).dataset.state === "busy" && step(s, "fail", esc(e.message)));
     $("#check-hint").className = "hint error";
     $("#check-hint").textContent = e.message;
@@ -191,15 +209,19 @@ $("#run-check").addEventListener("click", async () => {
   }
 });
 
-function showVerdict(rec) {
+function addLedger(sel, label, href, title) {
+  $(`${sel} ol`).insertAdjacentHTML("beforeend",
+    `<li><a href="${esc(href || "#")}" target="_blank" rel="noopener" title="${esc(title)}">${esc(label)}</a></li>`);
+}
+
+async function showVerdict(rec) {
   const conflicts = rec.verdict.conflicts;
   const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const mark = (side, name) => {
-    const li = $$(`#firm-${side} .list li`).find((x) => norm(x.dataset.name) === norm(name))
-      || $$(`#firm-${side} .list li`).find((x) => norm(x.dataset.name).includes(norm(name)) || norm(name).includes(norm(x.dataset.name)));
-    if (li) { li.classList.add("match"); li.style.setProperty("--i", $$(".match", li.parentElement).length); }
-  };
-  conflicts.forEach((c) => { mark("incoming", c.incoming); mark("existing", c.existing); });
+  const find = (side, name) => $$(`#firm-${side} .list li`).find((x) => norm(x.dataset.name) === norm(name))
+    || $$(`#firm-${side} .list li`).find((x) => norm(x.dataset.name).includes(norm(name)) || norm(name).includes(norm(x.dataset.name)));
+  const hits = [...new Set(conflicts.flatMap((c) => [find("incoming", c.incoming), find("existing", c.existing)]).filter(Boolean))];
+  await S.beams(hits);
+  hits.forEach((li, i) => { li.style.setProperty("--i", i); li.classList.add("match"); });
   const rel = { same_entity: "Same entity", former_name: "Former name", parent_subsidiary: "Parent and subsidiary", affiliate: "Affiliated", shared_officer: "Shared officer" };
   const v = $("#verdict");
   v.hidden = false;
@@ -227,6 +249,7 @@ $("#ask").addEventListener("submit", async (e) => {
   btn.disabled = true;
   const turns = $("#turns");
   turns.innerHTML = `<li class="empty">Starting a session…</li>`;
+  S.working(true);
   $("#answer").hidden = true;
   const res = await fetch("/api/agent", {
     method: "POST", headers: { "content-type": "application/json" },
@@ -245,10 +268,15 @@ $("#ask").addEventListener("submit", async (e) => {
       if (line.startsWith("data: ")) onAgentEvent(JSON.parse(line.slice(6)));
     }
   }
+  await agentQueue;
+  S.working(false);
   btn.disabled = false;
 });
 
-function onAgentEvent(ev) {
+let agentQueue = Promise.resolve();
+function onAgentEvent(ev) { agentQueue = agentQueue.then(() => handleAgentEvent(ev)); }
+
+async function handleAgentEvent(ev) {
   const turns = $("#turns");
   if (ev.type === "start") {
     const screens = Object.values(ev.policy.screens).flat();
@@ -259,14 +287,21 @@ function onAgentEvent(ev) {
     const sig = `<span class="sig">Enclave-signed reply <span class="mono">${short(t.chat_id, 8)}</span></span>`;
     if (a.action === "read") {
       const d = t.decision;
-      turns.insertAdjacentHTML("beforeend", `<li class="${d.allowed ? "allow" : "block"}">
+      turns.insertAdjacentHTML("beforeend", `<li class="${d.allowed ? "allow" : "block"} pending">
         <span class="what">Reads ${esc(a.id)}</span>
         <span class="said">${d.allowed ? "Gets the document." : "Told: “Access to this material is not available in this session.”"}</span>
         <span class="reason"><b>${d.allowed ? "Allowed" : "Blocked"}</b>: ${esc(d.reason)}</span>${sig}</li>`);
+      const li = turns.lastElementChild;
+      await S.read(li, d.allowed);
+      li.classList.remove("pending");
     } else {
       turns.insertAdjacentHTML("beforeend", `<li><span class="what">Answers</span>${sig}</li>`);
     }
   } else if (ev.type === "done") {
+    if (ev.chain) {
+      await S.drop($("#ledger-agent"));
+      addLedger("#ledger-agent", `${ev.blocked}/${ev.decisions}`, ev.chain.url, "Sealed session on NEAR: blocked / decisions");
+    }
     const a = $("#answer");
     a.hidden = false;
     a.innerHTML = `<h3>Answer</h3><p>${esc(ev.answer)}</p>
@@ -305,12 +340,14 @@ $("#lookup").addEventListener("submit", async (e) => {
 /* ---------- tabs, boot ---------- */
 
 function switchTab(name) {
+  if (stage) stage.anchor(name === "check" ? $("#stage-check") : name === "agent" ? $("#stage-agent") : null, { wall: name === "agent" });
   $$(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
   $$(".tab").forEach((t) => (t.hidden = t.id !== `tab-${name}`));
 }
 $$(".tabs button").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 $("#enclave").addEventListener("click", () => attest(true));
 
+if (stage) stage.anchor($("#stage-check"));
 config = await (await fetch("/api/config")).json();
 $("#contract-link").textContent = config.contract;
 $("#contract-link").href = `${config.explorer}/address/${config.contract}`;
