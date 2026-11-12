@@ -1,0 +1,10 @@
+version = "3"
+credentials_home_dir = "/root/.near-credentials"
+
+[network_connection.testnet-fastnear]
+network_name = "testnet"
+rpc_url = "https://test.rpc.fastnear.com/"
+wallet_url = "https://testnet.mynearwallet.com/"
+explorer_transaction_url = "https://testnet.nearblocks.io/txns/"
+linkdrop_account_id = "testnet"
+fastnear_url = "https://test.api.fastnear.com/"

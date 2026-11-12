@@ -23,7 +23,7 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -37,9 +37,9 @@ from .room import Policy, Session, policy_from_verdict, policy_hash, verify_log
 ROOT = Path(__file__).resolve().parents[3]
 WEB = ROOT / "web"
 DEMO = ROOT / "demo"
-STATE = ROOT / ".state"
+STATE = Path(os.environ.get("SEALROOM_STATE", ROOT / ".state"))
 IDENTITY = STATE / "identity"
-STATE.mkdir(exist_ok=True)
+STATE.mkdir(parents=True, exist_ok=True)
 MODEL = os.environ.get("SEALROOM_MODEL", "z-ai/glm-5.3-flash")
 FIRMS = {
     "incoming": os.environ.get("SEALROOM_FIRM_INCOMING", "sr-firm-north-64716.testnet"),
@@ -52,6 +52,35 @@ app = FastAPI(title="Sealroom")
 _attest = {"at": 0.0, "model": None}
 rooms: dict[str, dict] = {}  # check_ref -> state of an open check
 pending: dict[str, dict] = {}  # session_id -> prepared agent session
+
+# Public-demo limits. Each run spends NEAR AI credit and testnet gas, so cap how
+# often one visitor and everyone together can start one. 0 turns a limit off.
+PER_IP_HOURLY = int(os.environ.get("SEALROOM_RUNS_PER_IP_HOUR", "0"))
+DAILY = int(os.environ.get("SEALROOM_RUNS_PER_DAY", "0"))
+_runs: list[tuple[float, str]] = []
+_busy = threading.Lock()  # one conflict check at a time
+
+
+def _client(req: Request) -> str:
+    return req.headers.get("fly-client-ip") or (req.client.host if req.client else "?")
+
+
+def _budget(req: Request) -> None:
+    now, ip = time.time(), _client(req)
+    _runs[:] = [(t, i) for t, i in _runs if now - t < 86400]
+    if DAILY and len(_runs) >= DAILY:
+        raise HTTPException(429, "The demo has used today's run budget. Try again tomorrow, or replay an existing check below.")
+    if PER_IP_HOURLY and sum(1 for t, i in _runs if i == ip and now - t < 3600) >= PER_IP_HOURLY:
+        raise HTTPException(429, "You've hit this demo's hourly limit. Try again later, or replay an existing check below.")
+    _runs.append((now, ip))
+
+
+def _prune() -> None:
+    now = time.time()
+    for ref in [k for k, v in rooms.items() if now - v["opened"] > 3600]:
+        rooms.pop(ref, None)
+    for sid in [k for k, v in pending.items() if now - v.get("at", now) > 3600]:
+        pending.pop(sid, None)
 
 
 def attested(fresh: bool = False):
@@ -134,6 +163,7 @@ class OpenIn(BaseModel):
 
 @app.post("/api/check/open")
 def open_check(body: OpenIn):
+    _prune()
     ref = os.urandom(16).hex()
     keys = chain.firm_keys(*FIRMS.values())
     rooms[ref] = {"ref": ref, "chunk": conflict.plan_chunk(body.incoming_count, body.existing_count), "keys": keys,
@@ -191,11 +221,18 @@ def get_psi(ref: str):
 
 
 @app.post("/api/check/{ref}/run")
-def run_check(ref: str):
+def run_check(ref: str, req: Request):
     r = _room(ref)
     inc, ext = r["envelopes"].get("incoming"), r["envelopes"].get("existing")
     if not inc or not ext or len(r["psi"]) != 4:
         raise HTTPException(400, "Both firms must seal and finish the exact-match step first.")
+    if not _busy.acquire(blocking=False):
+        raise HTTPException(429, "Another visitor's check is running in the enclave. Try again in a minute.")
+    try:
+        _budget(req)
+    except HTTPException:
+        _busy.release()
+        raise
     try:
         exact = conflict.exact_pairs(r["psi"], inc, ext, r["keys"], ref)
         m = attested()
@@ -204,6 +241,8 @@ def run_check(ref: str):
         rec = chain.call(chain.OPERATOR, "record_check", bundle.onchain_args(b), gas="300 Tgas")
     except Exception as e:  # noqa: BLE001
         raise _err(e)
+    finally:
+        _busy.release()
     b["check_id"] = int(rec["return"])
     b["tx"] = rec["tx"]
     r["bundle"] = b
@@ -279,6 +318,9 @@ class PrepareIn(BaseModel):
 @app.post("/api/agent/prepare")
 def agent_prepare(body: PrepareIn):
     """Build the session the member is asked to sign: who, which agent, which question, which rules."""
+    _prune()
+    if len(body.question) > 2000:
+        raise HTTPException(400, "Keep the question under 2,000 characters.")
     m = chain.view("get_member", {"account_id": body.member})
     if not m or not m["active"]:
         raise HTTPException(400, f"{body.member} is not an active member on {chain.CONTRACT}.")
@@ -293,7 +335,8 @@ def agent_prepare(body: PrepareIn):
         policy.wall(a.strip(), b.strip())
     session = Session(body.member, policy)
     q, p = sha256_hex(body.question), policy_hash(policy)
-    pending[session.id] = {"session": session, "question": body.question, "member": m, "account": body.member, "q": q, "p": p}
+    pending[session.id] = {"session": session, "question": body.question, "member": m, "account": body.member, "q": q, "p": p,
+                           "at": time.time()}
     return {"session_id": session.id, "agent": AGENT, "policy": policy.to_json(), "policy_hash": p, "question_hash": q,
             "message": session_message(chain.CONTRACT, AGENT, session.id, q, p)}
 
@@ -305,10 +348,11 @@ class RunIn(BaseModel):
 
 
 @app.post("/api/agent/run")
-def agent_run(body: RunIn):
+def agent_run(body: RunIn, req: Request):
     ps = pending.pop(body.session_id, None)
     if not ps:
         raise HTTPException(404, "Prepare the session first.")
+    _budget(req)
     session: Session = ps["session"]
     msg = session_message(chain.CONTRACT, AGENT, session.id, ps["q"], ps["p"])
     if not verify(ps["member"]["key"], msg, body.authorization):
@@ -391,4 +435,4 @@ app.mount("/", StaticFiles(directory=WEB, html=True), name="web")
 def main() -> None:
     import uvicorn
 
-    uvicorn.run("sealroom.server:app", host="127.0.0.1", port=int(os.environ.get("PORT", 4410)))
+    uvicorn.run("sealroom.server:app", host=os.environ.get("HOST", "127.0.0.1"), port=int(os.environ.get("PORT", 4410)))

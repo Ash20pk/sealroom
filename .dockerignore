@@ -1,0 +1,12 @@
+.git
+.env
+.state
+**/.venv
+**/__pycache__
+**/.pytest_cache
+contract/target
+web/node_modules
+docs
+eval
+*.secret.json
+*.envelope.json
