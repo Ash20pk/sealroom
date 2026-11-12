@@ -19,7 +19,7 @@
   </div>
   <nav class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="check">Conflict check</button>
-    <button role="tab" aria-selected="false" data-tab="agent">Agent under barriers</button>
+    <button role="tab" aria-selected="false" data-tab="agent">Agent in the Sealroom</button>
     <button role="tab" aria-selected="false" data-tab="verify">Verify a record</button>
   </nav>
   <button class="enclave" id="enclave" title="Re-check the enclave">
@@ -31,15 +31,18 @@
   <section id="tab-check" class="tab" role="tabpanel">
     <div class="intro">
       <h1>Check a lateral hire for conflicts. Neither firm shows its client list.</h1>
-      <p>Each list is encrypted in this browser to a model running in an Intel TDX enclave. Only matched pairs come back, and the proof goes on NEAR.</p>
+      <p>Exact names are matched by private set intersection. Everything subtler goes to a model in an Intel TDX enclave, which answers with entry numbers only. Every step is signed by an identity registered on NEAR.</p>
     </div>
 
     <ol class="steps" id="steps">
       <li data-step="attest">Confirm the enclave is attested</li>
-      <li data-step="seal">Each firm seals its own list</li>
-      <li data-step="send">Send both sealed lists</li>
-      <li data-step="sign">Check the enclave's signature</li>
-      <li data-step="anchor">Record the proof on NEAR</li>
+      <li data-step="identity">Check each firm's key on NEAR</li>
+      <li data-step="seal">Each firm seals and signs its list</li>
+      <li data-step="exact">Match exact names privately</li>
+      <li data-step="send">The enclave checks every chunk</li>
+      <li data-step="sign">Check the enclave's signatures</li>
+      <li data-step="anchor">NEAR verifies and records</li>
+      <li data-step="reveal">Each firm discloses only its matches</li>
     </ol>
 
     <div class="room">
@@ -47,6 +50,7 @@
         <header>
           <h2 class="firm-name">Incoming partner</h2>
           <p class="firm-role">The incoming partner's former clients and adverse parties</p>
+          <div class="ident-slot"></div>
         </header>
         <ol class="list" aria-live="polite"></ol>
         <footer>
@@ -67,6 +71,7 @@
         <header>
           <h2 class="firm-name">Receiving firm</h2>
           <p class="firm-role">The receiving firm's clients and adverse parties</p>
+          <div class="ident-slot"></div>
         </header>
         <ol class="list" aria-live="polite"></ol>
         <footer>
@@ -80,19 +85,25 @@
   <section id="tab-agent" class="tab" role="tabpanel" hidden>
     <div class="intro">
       <h1>Let the incoming partner use the firm's research agent, with the conflict walled off.</h1>
-      <p>Every read is decided before the document reaches the model. The agent gets the same refusal whatever the reason, so it can't learn who the firm acts for.</p>
+      <p>The agent is its own NEAR account, owned by a partner and pinned to one model and one prompt. A lawyer signs each session. Every read is decided before the document reaches the model, and the agent seals the log with a key that can do nothing else.</p>
     </div>
     <div class="agent">
       <form class="ask card" id="ask">
         <label for="person">Working as</label>
-        <input id="person" value="jane.okafor" autocomplete="off">
+        <select id="person"></select>
+        <div id="member-ident"></div>
         <label for="question">Question</label>
         <textarea id="question" rows="4">Give me a short brief on our beverage and textile clients' current plans.</textarea>
         <label class="check"><input type="checkbox" id="use-verdict" checked> Wall off the conflicts from the last check</label>
-        <button class="primary" type="submit">Ask the agent</button>
+        <button class="primary" type="submit">Sign and ask the agent</button>
+        <p class="hint">Your signature names this agent, this question and these walls. NEAR checks it before the session can be sealed.</p>
+        <div class="agent-card">
+          <span class="ident-who">The agent</span>
+          <div id="agent-ident"></div>
+        </div>
       </form>
       <div class="agent-stage">
-        <div class="stage" id="stage-agent" role="img" aria-label="The enclave behind its barrier. Allowed reads pass through; blocked reads stop at the wall."></div>
+        <div class="stage" id="stage-agent" role="img" aria-label="The enclave behind its seal. Allowed reads pass through; blocked reads stop at the wall."></div>
         <ul class="legend"><li><span class="key allow"></span>Allowed reads pass into the enclave</li><li><span class="key block"></span>Blocked reads stop at the wall</li></ul>
         <div class="ledger" id="ledger-agent"><span>Sealed sessions on NEAR</span><ol></ol></div>
       </div>
@@ -110,7 +121,7 @@
   <section id="tab-verify" class="tab" role="tabpanel" hidden>
     <div class="intro">
       <h1>Anyone can check a record.</h1>
-      <p>Look up a conflict check or a sealed agent session on NEAR and re-run the checks yourself.</p>
+      <p>Look up a conflict check or a sealed agent session on NEAR. For a check, the proof bundle is replayed: every request rebuilt byte for byte, every signature checked, the verdict re-derived.</p>
     </div>
     <div class="verify card">
       <form class="lookup" id="lookup">

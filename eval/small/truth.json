@@ -1,0 +1,130 @@
+{
+  "pairs": [
+    {
+      "incoming": "Kestrelmoor Logistics plc",
+      "existing": "Kestrelmoor Logistics",
+      "relationship": "same_entity",
+      "difficulty": "easy",
+      "note": "Identical once the 'plc' legal suffix is dropped."
+    },
+    {
+      "incoming": "Ribeirão Verde Agropecuária Ltda",
+      "existing": "Ribeirao Verde Agropecuaria Ltda.",
+      "relationship": "same_entity",
+      "difficulty": "medium",
+      "note": "Same Brazilian company; diacritics stripped on the existing side."
+    },
+    {
+      "incoming": "Winterbourne Medical Devices Corp",
+      "existing": "Winterbourne Medical Devcies Inc",
+      "relationship": "same_entity",
+      "difficulty": "medium",
+      "note": "Transposition typo 'Devcies' plus a different legal suffix."
+    },
+    {
+      "incoming": "Calderwick Renewables plc",
+      "existing": "Calderwick Wind Power Ltd",
+      "relationship": "former_name",
+      "difficulty": "easy",
+      "note": "Existing note states it was renamed to the incoming name."
+    },
+    {
+      "incoming": "Harrowgate Pharma Ltd",
+      "existing": "Thessaly Life Sciences plc",
+      "relationship": "parent_subsidiary",
+      "difficulty": "easy",
+      "note": "Incoming note names the existing entry as its 100% parent."
+    },
+    {
+      "incoming": "Tidewell Ports Ltd",
+      "existing": "Tidewell Dredging B.V.",
+      "relationship": "affiliate",
+      "difficulty": "medium",
+      "note": "Both are owned by Marisco Holdings (common ownership)."
+    },
+    {
+      "incoming": "Greyfriars Analytics Ltd",
+      "existing": "Morven Biosystems plc",
+      "relationship": "shared_officer",
+      "difficulty": "medium",
+      "note": "Imogen Fairweather-Oduya sits on both boards (initial vs full given name)."
+    }
+  ],
+  "hard_negatives": [
+    {
+      "incoming": "Emberford Mining Pvt Ltd",
+      "existing": "Emberford Aerospace Ltd",
+      "why_not": "Only the word 'Emberford' is shared: a mining business (IN) vs a aerospace business (UK), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Carnhurst Toys Pvt Ltd",
+      "existing": "Carnhurst Optics Corp",
+      "why_not": "Only the word 'Carnhurst' is shared: a toy business (IN) vs a optics business (US), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Cormquay Aerospace Corp",
+      "existing": "Cormquay Seafood Plc",
+      "why_not": "Only the word 'Cormquay' is shared: a aerospace business (US) vs a seafood business (NG), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Norwell Cosmetics Pte Ltd",
+      "existing": "Norwell Seafood Corp",
+      "why_not": "Only the word 'Norwell' is shared: a cosmetics business (SG) vs a seafood business (US), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Fenbrook Recruitment Pte Ltd",
+      "existing": "Fenbrook Veterinary AG",
+      "why_not": "Only the word 'Fenbrook' is shared: a recruitment business (SG) vs a veterinary business (DE), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Norhurst Insurance Brokers B.V.",
+      "existing": "Norhurst Veterinary Pty Ltd",
+      "why_not": "Only the word 'Norhurst' is shared: a insurance broking business (NL) vs a veterinary business (AU), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Priya Venkataraman",
+      "existing": "Arjun Venkataraman",
+      "why_not": "Same surname, different people (Priya vs Arjun; Architect, Pune vs Cardiologist, Chennai)."
+    },
+    {
+      "incoming": "Willem Achterberg",
+      "existing": "Annelies Achterberg",
+      "why_not": "Same surname, different people (Willem vs Annelies; Rotterdam shipowner vs Utrecht pension trustee)."
+    },
+    {
+      "incoming": "Céline Fontaine-Rey",
+      "existing": "Mathieu Fontaine-Rey",
+      "why_not": "Same surname, different people (Céline vs Mathieu; Lyon notary vs Bordeaux wine merchant)."
+    },
+    {
+      "incoming": "Emi Takeda-Hollis",
+      "existing": "Robert Takeda-Hollis",
+      "why_not": "Same surname, different people (Emi vs Robert; Osaka software founder vs Seattle orthodontist)."
+    },
+    {
+      "incoming": "Redfern Holdings Ltd",
+      "existing": "Redfield Holdings Inc",
+      "why_not": "Different distinctive words (Redfern vs Redfield), different business and country."
+    },
+    {
+      "incoming": "Eastmoor Capital Partners LLP",
+      "existing": "Westmoor Capital Partners LLC",
+      "why_not": "Only generic 'Capital Partners' shared; Eastmoor and Westmoor are different names."
+    },
+    {
+      "incoming": "Global Orchard Capital Ltd",
+      "existing": "Global Harbour Capital LLC",
+      "why_not": "Shares only the generic words 'Global' and 'Capital'."
+    },
+    {
+      "incoming": "First Coralline Bancorp",
+      "existing": "First Coralview Insurance Co",
+      "why_not": "Different distinctive words and different sector (bank vs insurer)."
+    },
+    {
+      "incoming": "Ikoyi Freightways Ltd",
+      "existing": "Lagoon Cold Storage Ltd",
+      "why_not": "Different officers (Olusegun vs Olusola Bankole-Smith); no shared person."
+    }
+  ]
+}

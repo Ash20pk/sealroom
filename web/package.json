@@ -1,0 +1,8 @@
+{
+  "name": "sealroom-web",
+  "private": true,
+  "type": "module",
+  "description": "Browser crypto for Sealroom. Only needed to run the Python/JS interop test.",
+  "scripts": { "test": "cd ../app && uv run pytest -q tests/test_interop.py" },
+  "devDependencies": { "libsodium-wrappers-sumo": "0.7.15" }
+}

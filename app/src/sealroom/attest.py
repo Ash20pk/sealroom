@@ -43,9 +43,12 @@ class VerifiedModel:
     nonce: str
     tcb_status: str
     report_sha256: str  # sha256 of the raw report JSON we verified
+    report_raw: bytes = b""  # the report itself, so anyone can re-verify it later
 
     def to_json(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        d.pop("report_raw")
+        return d
 
 
 def _check_quote(quote_hex: str, signing_key_hex: str, nonce: str, pccs_url: str | None) -> str:
@@ -75,7 +78,11 @@ def verify_model(model: str, *, pccs_url: str | None = INTEL_PCS, timeout: float
         timeout=timeout,
     )
     r.raise_for_status()
-    raw = r.content
+    return check_report(model, r.content, nonce, pccs_url=pccs_url)
+
+
+def check_report(model: str, raw: bytes, nonce: str, *, pccs_url: str | None = INTEL_PCS) -> VerifiedModel:
+    """Verify a raw attestation report. Used live, and offline by anyone re-checking a proof bundle."""
     report = json.loads(raw)
 
     gw = report["gateway_attestation"]
@@ -101,4 +108,5 @@ def verify_model(model: str, *, pccs_url: str | None = INTEL_PCS, timeout: float
         nonce=nonce,
         tcb_status=status,
         report_sha256=hashlib.sha256(raw).hexdigest(),
+        report_raw=raw,
     )

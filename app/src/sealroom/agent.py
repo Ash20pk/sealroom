@@ -1,19 +1,22 @@
-"""A research agent for a law firm, governed by barriers.
+"""A research agent for a law firm, working inside the Sealroom.
 
-Every model call goes to a NEAR AI TEE with end-to-end encryption, so neither
+The agent is a NEAR account registered by the firm, owned by one member and
+pinned to a model and to the hash of this prompt. A member must sign each
+session it runs. Every model call goes to a NEAR AI TEE with end-to-end encryption, so neither
 the gateway nor we as operators can read the firm's documents in transit.
-Every document read is decided by the barrier session before any content
+Every document read is decided by the Sealroom session before any content
 reaches the model. The session's decision log is sealed on NEAR at the end.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from .attest import VerifiedModel
-from .barrier import REFUSAL, Session
+from .room import REFUSAL, Session
 from .e2ee import ClientKey, encrypt_to
 from .nearai import complete
 
@@ -25,6 +28,9 @@ Some documents may be unavailable to this session. If a read is refused, do not 
 speculate about why; work with what you have, and say plainly if you could not find the answer.
 Library:
 """
+
+# Registered on NEAR with the agent; a session run with any other prompt cannot be sealed.
+PROMPT_HASH = hashlib.sha256(SYSTEM.encode()).hexdigest()
 
 
 @dataclass

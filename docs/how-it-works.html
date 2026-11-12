@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How Sealroom works</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --ink: #161a2e; --muted: #5b6380; --line: #dfe3ef; --soft: #f4f6fb;
+    --iris: #4f5fe0; --iris-soft: #e9ecff; --teal: #0f9f80; --teal-soft: #e2f6f0;
+    --red: #d6455c; --red-soft: #fde9ec; --amber: #b7791f; --amber-soft: #fdf3e1;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; }
+  body {
+    width: 210mm; height: 297mm; padding: 8mm 12mm 6mm; overflow: hidden;
+    font: 400 8pt/1.34 -apple-system, "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    display: flex; flex-direction: column; gap: 2.1mm;
+  }
+  h1 { font-size: 20pt; line-height: 1.05; margin: 0; letter-spacing: -.02em; }
+  h1 span { color: var(--iris); }
+  h2 { font-size: 10.5pt; margin: 0 0 1.4mm; letter-spacing: -.01em; display: flex; align-items: center; gap: 2mm; }
+  h2 .n { display: inline-grid; place-items: center; width: 5mm; height: 5mm; border-radius: 50%; background: var(--iris); color: #fff; font-size: 8pt; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; border-bottom: 2px solid var(--ink); padding-bottom: 2.6mm; }
+  header .lede { max-width: 120mm; font-size: 8.8pt; color: var(--muted); }
+  .tag { font-size: 7.4pt; color: var(--muted); text-align: right; white-space: nowrap; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .grid2.wide-right { grid-template-columns: 0.8fr 1.2fr; }
+  .card { border: 1px solid var(--line); border-radius: 3mm; padding: 2.6mm 3.2mm; background: #fff; }
+  .soft { background: var(--soft); border-color: transparent; }
+  .problem b { color: var(--red); }
+  .idea b { color: var(--iris); }
+  svg { display: block; width: 100%; height: auto; }
+  svg text { font-family: -apple-system, "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  ol.steps { margin: 1.2mm 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2mm 4mm; counter-reset: s; font-size: 7.8pt; }
+  ol.steps li { counter-increment: s; padding-left: 5.4mm; position: relative; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: .2mm; width: 4mm; height: 4mm; border-radius: 50%; background: var(--iris-soft); color: var(--iris); font-weight: 700; font-size: 7pt; display: grid; place-items: center; }
+  ol.steps b { display: block; }
+  .ids { display: grid; gap: 1.6mm; }
+  .id { border-radius: 2.4mm; padding: 1.6mm 2.4mm; background: var(--soft); display: grid; grid-template-columns: 22mm 1fr; gap: 2mm; align-items: center; }
+  .id .who { font-weight: 700; font-size: 9pt; display: flex; align-items: center; gap: 1.6mm; }
+  .id .who i { font-style: normal; font-size: 11pt; }
+  .id p { font-size: 7.6pt; }
+  .trust { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2mm 4mm; margin-top: 1mm; }
+  .trust div { padding-left: 4.6mm; position: relative; font-size: 7.8pt; }
+  .trust div::before { content: "✓"; position: absolute; left: 0; color: var(--teal); font-weight: 800; }
+  .gloss { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; font-size: 7.6pt; }
+  .gloss b { display: block; font-size: 8pt; }
+  footer { margin-top: auto; display: flex; justify-content: space-between; font-size: 7pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 1.8mm; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>How <span>Sealroom</span> works</h1>
+    <p class="lede">Two law firms find out whether they share clients without either one showing its client list to anyone. Then the firm's AI assistant works with the conflicted clients walled off. Every step leaves a receipt anyone can check.</p>
+  </div>
+  <div class="tag">Built on NEAR + NEAR AI Cloud<br>One-page overview, November 2026</div>
+</header>
+
+<div class="grid2">
+  <div class="card soft problem">
+    <h2>The problem</h2>
+    <p>When a lawyer moves firms, both firms must check for <b>conflicts of interest</b>: is the lawyer's old client someone the new firm is suing, or acting for? Today one side hands its <b>confidential client list</b> to the other, or to a vendor, and simply has to trust them.</p>
+  </div>
+  <div class="card soft idea">
+    <h2>The idea</h2>
+    <p>Each firm locks its list in its own browser and drops it into a <b>sealed room</b>: a computer chip that even its operator cannot look inside. Only the matches come out. A <b>public notary</b> (the NEAR blockchain) checks everyone's signatures and keeps a receipt.</p>
+  </div>
+</div>
+
+<section class="card">
+  <h2><span class="n">1</span>The conflict check</h2>
+  <svg viewBox="0 0 760 232" role="img" aria-label="Two firms lock their lists, swap a secret handshake for identical names, send locked lists into the sealed room, which returns only the matches; the NEAR notary records a receipt.">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4f5fe0"/></marker>
+      <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#0f9f80"/></marker>
+      <marker id="k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8a91ad"/></marker>
+      <g id="list">
+        <rect width="40" height="50" rx="5" fill="#fff" stroke="#c9cfe3"/>
+        <rect x="7" y="9" width="26" height="4" rx="2" fill="#c9cfe3"/><rect x="7" y="18" width="20" height="4" rx="2" fill="#c9cfe3"/>
+        <rect x="7" y="27" width="24" height="4" rx="2" fill="#c9cfe3"/><rect x="7" y="36" width="16" height="4" rx="2" fill="#c9cfe3"/>
+      </g>
+      <g id="lock">
+        <path d="M-6 -3v-5a6 6 0 0 1 12 0v5" fill="none" stroke="#4f5fe0" stroke-width="2.4"/>
+        <rect x="-9" y="-3" width="18" height="14" rx="3" fill="#4f5fe0"/>
+        <circle cy="4" r="2" fill="#fff"/>
+      </g>
+    </defs>
+
+    <!-- Firm A -->
+    <rect x="6" y="40" width="170" height="118" rx="12" fill="#f4f6fb"/>
+    <text x="91" y="60" text-anchor="middle" font-size="12.5" font-weight="700" fill="#161a2e">Firm A</text>
+    <text x="91" y="75" text-anchor="middle" font-size="9.5" fill="#5b6380">the lawyer's old firm</text>
+    <use href="#list" x="50" y="90"/>
+    <use href="#lock" x="112" y="120"/>
+    <text x="91" y="152" text-anchor="middle" font-size="9" fill="#4f5fe0" font-weight="600">locked + signed</text>
+
+    <!-- Firm B -->
+    <rect x="584" y="40" width="170" height="118" rx="12" fill="#f4f6fb"/>
+    <text x="669" y="60" text-anchor="middle" font-size="12.5" font-weight="700" fill="#161a2e">Firm B</text>
+    <text x="669" y="75" text-anchor="middle" font-size="9.5" fill="#5b6380">the lawyer's new firm</text>
+    <use href="#list" x="628" y="90"/>
+    <use href="#lock" x="690" y="120"/>
+    <text x="669" y="152" text-anchor="middle" font-size="9" fill="#4f5fe0" font-weight="600">locked + signed</text>
+
+    <!-- secret handshake -->
+    <path d="M176 22 H584" stroke="#0f9f80" stroke-width="1.6" stroke-dasharray="5 4" fill="none" marker-start="url(#g)" marker-end="url(#g)"/>
+    <path d="M91 40 V22 H176 M669 40 V22 H584" stroke="#0f9f80" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/>
+    <rect x="236" y="10" width="288" height="24" rx="12" fill="#e2f6f0"/>
+    <text x="380" y="26" text-anchor="middle" font-size="9.6" fill="#0b6e59" font-weight="600">Secret handshake: finds identical names, reveals nothing else</text>
+
+    <!-- sealed room -->
+    <rect x="276" y="52" width="208" height="96" rx="16" fill="#e9ecff" stroke="#4f5fe0" stroke-width="2"/>
+    <rect x="286" y="62" width="188" height="76" rx="10" fill="none" stroke="#4f5fe0" stroke-dasharray="3 4" opacity=".6"/>
+    <text x="380" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="#2c3ab8">Sealed room</text>
+    <text x="380" y="104" text-anchor="middle" font-size="9.5" fill="#3a4699">an AI inside a locked chip</text>
+    <text x="380" y="118" text-anchor="middle" font-size="9.5" fill="#3a4699">spots renamed companies, parents,</text>
+    <text x="380" y="131" text-anchor="middle" font-size="9.5" fill="#3a4699">subsidiaries and shared directors</text>
+    <path d="M176 100 H274" stroke="#4f5fe0" stroke-width="2" marker-end="url(#a)"/>
+    <path d="M584 100 H486" stroke="#4f5fe0" stroke-width="2" marker-end="url(#a)"/>
+    <text x="225" y="94" text-anchor="middle" font-size="8.6" fill="#5b6380">scrambled list</text>
+    <text x="535" y="94" text-anchor="middle" font-size="8.6" fill="#5b6380">scrambled list</text>
+
+    <!-- result -->
+    <path d="M380 148 V170" stroke="#4f5fe0" stroke-width="2" marker-end="url(#a)"/>
+    <rect x="270" y="172" width="220" height="26" rx="13" fill="#fde9ec"/>
+    <text x="380" y="189" text-anchor="middle" font-size="9.8" fill="#a32a3e" font-weight="700">Only the matches come out: "row 4 ↔ row 7"</text>
+    <path d="M270 185 H130 V158" stroke="#d6455c" stroke-width="1.4" fill="none" marker-end="url(#k)"/>
+    <path d="M490 185 H630 V158" stroke="#d6455c" stroke-width="1.4" fill="none" marker-end="url(#k)"/>
+    <text x="196" y="180" text-anchor="middle" font-size="8.4" fill="#5b6380">each firm names only</text>
+    <text x="566" y="180" text-anchor="middle" font-size="8.4" fill="#5b6380">its own matched rows</text>
+
+    <!-- notary -->
+    <rect x="6" y="206" width="748" height="24" rx="8" fill="#161a2e"/>
+    <text x="22" y="222" font-size="9.6" fill="#fff" font-weight="700">NEAR public notary</text>
+    <text x="140" y="222" font-size="9.2" fill="#c9d0ff">checks both firms' signatures and the sealed room's signature, then stores a receipt (fingerprints, never names)</text>
+    <path d="M380 198 V206" stroke="#161a2e" stroke-width="2"/>
+  </svg>
+  <ol class="steps">
+    <li><b>Check the room is genuine</b>Intel's certificate proves the chip is real, sealed and unmodified.</li>
+    <li><b>Lock and sign</b>Each firm scrambles its list in its own browser and signs it with its registered key.</li>
+    <li><b>Secret handshake</b>Exact name matches ("Vale Doce S.A." = "Vale Doce") are found by maths alone.</li>
+    <li><b>The sealed AI looks deeper</b>It answers with row numbers only, never names, so nothing else can leak.</li>
+    <li><b>The notary records it</b>NEAR refuses the record unless every signature checks out.</li>
+    <li><b>Ranked result</b>"Old client vs. the new firm's opponent" comes first, then cases to review.</li>
+  </ol>
+</section>
+
+<div class="grid2 wide-right">
+  <section class="card">
+    <h2><span class="n">2</span>Everyone has an ID card</h2>
+    <div class="ids">
+      <div class="id"><div class="who"><i>🏛</i>Firm</div><p>Registers its own signing key. A list it didn't sign is rejected.</p></div>
+      <div class="id"><div class="who"><i>⚖</i>Lawyer</div><p>Own NEAR account, added by the firm. Signs every AI session they start.</p></div>
+      <div class="id"><div class="who"><i>🤖</i>AI agent</div><p>Owned by a partner, locked to one AI model and one set of instructions. Its key can do exactly one thing.</p></div>
+    </div>
+    <p class="muted" style="margin-top:1.6mm">Like a building pass, with NEAR as the front desk that checks it every time. A firm can cancel a pass at any moment.</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>The AI assistant, with walls</h2>
+    <svg viewBox="0 0 440 150" role="img" aria-label="A lawyer signs a permission slip, the agent asks to read documents, a gatekeeper allows or blocks each one before the sealed AI sees it, and every decision goes into a logbook sealed on NEAR.">
+      <rect x="2" y="38" width="84" height="60" rx="10" fill="#f4f6fb"/>
+      <text x="44" y="60" text-anchor="middle" font-size="17">⚖</text>
+      <text x="44" y="77" text-anchor="middle" font-size="10" font-weight="700" fill="#161a2e">Lawyer</text>
+      <text x="44" y="90" text-anchor="middle" font-size="8.2" fill="#5b6380">signs a permission slip</text>
+      <path d="M86 68 H110" stroke="#4f5fe0" stroke-width="2" marker-end="url(#a)"/>
+      <rect x="112" y="38" width="84" height="60" rx="10" fill="#f4f6fb"/>
+      <text x="154" y="60" text-anchor="middle" font-size="17">🤖</text>
+      <text x="154" y="77" text-anchor="middle" font-size="10" font-weight="700" fill="#161a2e">Agent</text>
+      <text x="154" y="90" text-anchor="middle" font-size="8.2" fill="#5b6380">asks for documents</text>
+      <path d="M196 68 H222" stroke="#4f5fe0" stroke-width="2" marker-end="url(#a)"/>
+      <rect x="224" y="14" width="18" height="108" rx="4" fill="#161a2e"/>
+      <text x="233" y="136" text-anchor="middle" font-size="9" font-weight="700" fill="#161a2e">Gatekeeper</text>
+      <text x="233" y="147" text-anchor="middle" font-size="7.8" fill="#5b6380">decides every read</text>
+      <circle cx="210" cy="108" r="8" fill="#fde9ec" stroke="#d6455c" stroke-width="1.4"/>
+      <path d="M206.5 104.5 L213.5 111.5 M213.5 104.5 L206.5 111.5" stroke="#d6455c" stroke-width="1.7"/>
+      <text x="198" y="111" text-anchor="end" font-size="8.4" fill="#a32a3e" font-weight="600">blocked: same polite refusal</text>
+      <path d="M242 36 H300" stroke="#0f9f80" stroke-width="2" marker-end="url(#g)"/>
+      <text x="270" y="29" text-anchor="middle" font-size="8.4" fill="#0b6e59" font-weight="600">allowed</text>
+      <rect x="302" y="12" width="136" height="48" rx="10" fill="#e9ecff" stroke="#4f5fe0" stroke-width="1.6"/>
+      <text x="370" y="32" text-anchor="middle" font-size="10" font-weight="700" fill="#2c3ab8">Sealed AI</text>
+      <text x="370" y="47" text-anchor="middle" font-size="8.2" fill="#3a4699">reads only what's allowed</text>
+      <path d="M242 98 H300" stroke="#8a91ad" stroke-width="1.4" stroke-dasharray="3 3" marker-end="url(#k)"/>
+      <text x="270" y="92" text-anchor="middle" font-size="8" fill="#5b6380">every decision</text>
+      <rect x="302" y="78" width="136" height="44" rx="10" fill="#161a2e"/>
+      <text x="370" y="97" text-anchor="middle" font-size="9.4" font-weight="700" fill="#fff">Logbook sealed on NEAR</text>
+      <text x="370" y="111" text-anchor="middle" font-size="8" fill="#c9d0ff">by the agent's own account</text>
+    </svg>
+    <p class="muted" style="margin-top:1mm">Conflicted clients from the check become walls. Every blocked read gets the same refusal, so the AI can't work out who the firm acts for.</p>
+  </section>
+</div>
+
+<section class="card soft">
+  <h2><span class="n">4</span>Why you don't have to trust us</h2>
+  <div class="trust">
+    <div>No list ever leaves a firm unscrambled. Our server only sees row numbers.</div>
+    <div>Every result comes with a <b>proof pack</b> anyone can replay to get the same answer.</div>
+    <div>Each firm can later prove exactly which list it submitted, without showing it.</div>
+    <div>The notary rejects anything with a missing or forged signature.</div>
+    <div>Tampering with the result, the AI's instructions or a reply is detected.</div>
+    <div>The AI agent can't swap its model or instructions, or act without a lawyer's signature.</div>
+  </div>
+</section>
+
+<section class="gloss">
+  <div><b>Sealed room (enclave)</b>A sealed processor whose memory is encrypted. Intel signs a certificate saying exactly what runs inside.</div>
+  <div><b>NEAR</b>A public blockchain. Here it is a notary: it stores receipts and checks signatures, but never sees client names.</div>
+  <div><b>Signature</b>A digital stamp only the key's owner can make, and anyone can check against their registered ID.</div>
+  <div><b>Fingerprint</b>A short code computed from a list. It proves which list was used but can't be turned back into the list.</div>
+</section>
+
+<footer>
+  <span>Sealroom · built at NEAR HACKATHON 2026</span>
+  <span>Contract v2.sealroom-64716.testnet · NEAR testnet</span>
+</footer>
+
+</body>
+</html>

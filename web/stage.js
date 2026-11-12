@@ -96,7 +96,7 @@ export class Stage {
     this.ringGroup.rotation.x = 0.42;
     this.scene.add(this.ringGroup);
 
-    // The barrier: a translucent wall between the enclave and the library (agent view only).
+    // The seal: a translucent wall between the enclave and the library (agent view only).
     this.wallMat = new THREE.MeshBasicMaterial({ color: this.c.ox, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
     this.wall = new THREE.Mesh(new THREE.PlaneGeometry(S * 0.08, S * 1.9), this.wallMat);
     this.wallEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(S * 0.08, S * 1.9)),

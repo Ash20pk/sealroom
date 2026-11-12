@@ -36,9 +36,13 @@ class SignedCompletion:
     signature: str
     signing_address: str
     signature_kind: str
+    body: bytes = b""  # exact request bytes sent
+    raw: bytes = b""  # exact response bytes received
 
     def to_json(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        d.pop("body"), d.pop("raw")
+        return d
 
 
 def api_key() -> str:
@@ -46,6 +50,21 @@ def api_key() -> str:
     if not key.startswith("sk-"):
         raise RuntimeError("set NEARAI_API_KEY (an sk-... key from cloud.near.ai)")
     return key
+
+
+def request_body(model: str, encrypted_messages: list[dict], max_tokens: int) -> bytes:
+    """The exact bytes sent. Rebuilt byte for byte by the proof-bundle verifier."""
+    return json.dumps(
+        {
+            "model": model,
+            "messages": encrypted_messages,
+            "stream": False,
+            "temperature": 0,
+            "max_tokens": max_tokens,
+            "response_format": {"type": "json_object"},
+        },
+        separators=(",", ":"),
+    ).encode()
 
 
 def complete(
@@ -57,17 +76,7 @@ def complete(
     timeout: float = 180,
 ) -> SignedCompletion:
     """Send pre-encrypted messages; decrypt the reply; fetch and check the TEE signature."""
-    body = json.dumps(
-        {
-            "model": model.model,
-            "messages": encrypted_messages,
-            "stream": False,
-            "temperature": 0,
-            "max_tokens": max_tokens,
-            "response_format": {"type": "json_object"},
-        },
-        separators=(",", ":"),
-    ).encode()
+    body = request_body(model.model, encrypted_messages, max_tokens)
     headers = {
         "Authorization": f"Bearer {api_key()}",
         "Content-Type": "application/json",
@@ -99,6 +108,8 @@ def complete(
         signature=sig["signature"],
         signing_address=sig["signing_address"],
         signature_kind=sig.get("signature_kind", ""),
+        body=body,
+        raw=raw,
     )
 
 
@@ -114,6 +125,12 @@ def _fetch_signature(chat_id: str, attempts: int = 10) -> dict:
             return r.json()
         time.sleep(min(1.5 * (i + 1), 5))
     raise SignatureError(f"no signature for {chat_id} (last status {r.status_code}: {r.text[:200]})")
+
+
+def expected_signed_text(kind: str, signed_text: str, model: str, req_h: str, resp_h: str) -> str:
+    if kind == "provider_tee" or signed_text.count(":") >= 2:
+        return f"{model}:{req_h}:{resp_h}"
+    return f"{req_h}:{resp_h}"
 
 
 def _check_signature(sig: dict, model: VerifiedModel, req_h: str, resp_h: str) -> None:

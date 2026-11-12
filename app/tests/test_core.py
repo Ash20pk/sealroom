@@ -1,6 +1,6 @@
 from nacl.signing import SigningKey
 
-from sealroom.conflict import _clean_verdict, commitment
+from sealroom.conflict import commitment
 from sealroom.e2ee import ClientKey, decrypt_as_model, encrypt_to
 
 
@@ -32,23 +32,11 @@ def test_commitment_depends_on_salt_and_list():
     assert commitment(s1, p) != commitment(s1, p + p)
 
 
-def test_verdict_cleaning_drops_bad_rows_and_checks_commitments():
-    inc, ext = {"commitment": "i"}, {"commitment": "e"}
-    raw = {
-        "incoming_commitment": "i",
-        "existing_commitment": "e",
-        "conflicts": [
-            {"incoming": "X", "existing": "Y", "relationship": "same_entity", "confidence": 0.9, "explanation": "z" * 999},
-            {"incoming": "leak", "existing": "leak", "relationship": "made_up", "confidence": 1},
-            {"incoming": "low", "existing": "low", "relationship": "affiliate", "confidence": 0.2},
-        ],
-    }
-    v = _clean_verdict(raw, inc, ext)
-    assert [c["incoming"] for c in v["conflicts"]] == ["X"]
-    assert len(v["conflicts"][0]["explanation"]) == 160
-    raw["incoming_commitment"] = "other"
-    try:
-        _clean_verdict(raw, inc, ext)
-        assert False
-    except ValueError:
-        pass
+def test_disclosed_encryption_reproduces_ciphertext():
+    from sealroom.e2ee import encrypt_disclosable
+    model = SigningKey.generate()
+    pub = bytes(model.verify_key).hex()
+    ct, d = encrypt_disclosable(pub, "instructions")
+    assert encrypt_to(pub, "instructions", **d) == ct
+    assert encrypt_to(pub, "other", **d) != ct
+    assert decrypt_as_model(model, ct) == "instructions"

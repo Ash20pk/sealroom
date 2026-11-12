@@ -1,4 +1,4 @@
-"""Information barriers for AI agents, with a tamper-evident decision log.
+"""Sealroom access rules for AI agents, with a tamper-evident decision log.
 
 Two kinds of rule:
   screen  a person may not reach material labelled with certain clients
@@ -91,7 +91,7 @@ class Session:
             resource=resource,
             labels=sorted(labels),
             allowed=reason is None,
-            reason=reason or "no barrier applies",
+            reason=reason or "no Sealroom rule applies",
         )
         entry = asdict(d)
         entry.pop("hash")
@@ -117,10 +117,14 @@ def verify_log(log: list[dict]) -> str:
     return head
 
 
-def policy_from_verdict(verdict: dict, person: str, label_of) -> Policy:
+def policy_hash(policy: Policy) -> str:
+    return hashlib.sha256(json.dumps(policy.to_json(), sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def policy_from_verdict(named_pairs: list[dict], person: str, label_of) -> Policy:
     """Turn a conflict check into screens: the incoming person is screened
-    from every existing client they conflict with."""
+    from every existing party they conflict with (named_verdict() output)."""
     p = Policy()
-    for c in verdict["conflicts"]:
-        p.screen(person, label_of(c["existing"]))
+    for c in named_pairs:
+        p.screen(person, label_of(c["existing"]["name"]))
     return p

@@ -31,14 +31,24 @@ def model_x25519(model_ed25519_pub_hex: str) -> bytes:
     return nb.crypto_sign_ed25519_pk_to_curve25519(bytes.fromhex(model_ed25519_pub_hex))
 
 
-def encrypt_to(model_ed25519_pub_hex: str, plaintext: str) -> str:
-    """Encrypt one field so only the holder of the model key can read it."""
-    eph = PrivateKey.generate()
+def encrypt_to(model_ed25519_pub_hex: str, plaintext: str, *, eph_secret: str | None = None, nonce: str | None = None) -> str:
+    """Encrypt one field so only the holder of the model key can read it.
+
+    Pass eph_secret and nonce (hex) to reproduce an earlier ciphertext exactly:
+    that is how a verifier checks what the orchestrator itself sent the model.
+    """
+    eph = PrivateKey(bytes.fromhex(eph_secret)) if eph_secret else PrivateKey.generate()
     shared = nb.crypto_scalarmult(bytes(eph), model_x25519(model_ed25519_pub_hex))
     key = _kdf(shared)
-    nonce = os.urandom(24)
-    ct = nb.crypto_aead_xchacha20poly1305_ietf_encrypt(plaintext.encode(), None, nonce, key)
-    return (bytes(eph.public_key) + nonce + ct).hex()
+    n = bytes.fromhex(nonce) if nonce else os.urandom(24)
+    ct = nb.crypto_aead_xchacha20poly1305_ietf_encrypt(plaintext.encode(), None, n, key)
+    return (bytes(eph.public_key) + n + ct).hex()
+
+
+def encrypt_disclosable(model_ed25519_pub_hex: str, plaintext: str) -> tuple[str, dict]:
+    """Encrypt and keep the randomness, so the ciphertext can be shown to match `plaintext` later."""
+    eph, nonce = os.urandom(32).hex(), os.urandom(24).hex()
+    return encrypt_to(model_ed25519_pub_hex, plaintext, eph_secret=eph, nonce=nonce), {"eph_secret": eph, "nonce": nonce}
 
 
 @dataclass
@@ -50,6 +60,14 @@ class ClientKey:
     @classmethod
     def generate(cls) -> "ClientKey":
         return cls(SigningKey.generate())
+
+    @classmethod
+    def from_seed(cls, seed_hex: str) -> "ClientKey":
+        return cls(SigningKey(bytes.fromhex(seed_hex)))
+
+    @property
+    def seed_hex(self) -> str:
+        return bytes(self.signing).hex()
 
     @property
     def public_hex(self) -> str:

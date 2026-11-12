@@ -1,0 +1,287 @@
+{
+  "pairs": [
+    {
+      "incoming": "Okonkwo-Bassey Holdings Ltd",
+      "existing": "Okonkwo Bassey Holdings",
+      "relationship": "same_entity",
+      "difficulty": "medium",
+      "note": "Identical after punctuation and suffix normalisation."
+    },
+    {
+      "incoming": "Halloran Freight Inc.",
+      "existing": "Halloran Freight Corp",
+      "relationship": "same_entity",
+      "difficulty": "easy",
+      "note": "Identical apart from legal suffix."
+    },
+    {
+      "incoming": "Delacroix-Vautrin Pharmaceutiques SAS",
+      "existing": "Vautrin Delacroix Pharmaceutiques",
+      "relationship": "same_entity",
+      "difficulty": "hard",
+      "note": "Founder names reordered and hyphen dropped."
+    },
+    {
+      "incoming": "Shinoda Kogyo Kabushiki Kaisha",
+      "existing": "Shinoda Industrial Co., Ltd.",
+      "relationship": "same_entity",
+      "difficulty": "hard",
+      "note": "Japanese romanised name vs English translation (Kogyo = Industrial, K.K. = Co., Ltd.)."
+    },
+    {
+      "incoming": "Ōtsuki Shōji K.K.",
+      "existing": "Ohtsuki Shoji KK",
+      "relationship": "same_entity",
+      "difficulty": "hard",
+      "note": "Hepburn macrons vs 'oh' romanisation of the same trading company."
+    },
+    {
+      "incoming": "Margarethe Lindqvist-Haas",
+      "existing": "M. Lindqvist-Haas",
+      "relationship": "same_entity",
+      "difficulty": "hard",
+      "note": "Initial + rare double-barrelled surname + same profession and city."
+    },
+    {
+      "incoming": "Zhou Wenliang",
+      "existing": "Wenliang Zhou",
+      "relationship": "same_entity",
+      "difficulty": "hard",
+      "note": "Family-name-first vs given-name-first order of the same person."
+    },
+    {
+      "incoming": "Adebayo T. Okafor-Nwosu",
+      "existing": "Okafor-Nwosu, Adebayo",
+      "relationship": "same_entity",
+      "difficulty": "hard",
+      "note": "Surname-first with comma; middle initial dropped."
+    },
+    {
+      "incoming": "Orrisdale Financial Services Ltd",
+      "existing": "Penhallow Credit Ltd",
+      "relationship": "former_name",
+      "difficulty": "hard",
+      "note": "Former name in note; existing drops 'Union'."
+    },
+    {
+      "incoming": "Televale Comunicacoes",
+      "existing": "Azulmar Telecomunicações S.A.",
+      "relationship": "former_name",
+      "difficulty": "hard",
+      "note": "Existing note gives a former name matching the incoming entry modulo casing/diacritics."
+    },
+    {
+      "incoming": "Rheinwerk Mobility AG",
+      "existing": "Kessler Ostrowski Fahrzeugbau GmbH",
+      "relationship": "former_name",
+      "difficulty": "hard",
+      "note": "German note 'vormals' = formerly; hyphen and legal form differ."
+    },
+    {
+      "incoming": "Albrecht Senn Holding",
+      "existing": "Mittelrhein Verpackung GmbH",
+      "relationship": "parent_subsidiary",
+      "difficulty": "hard",
+      "note": "German note: existing is a 100% subsidiary of the incoming holding."
+    },
+    {
+      "incoming": "Hvalstad Gruppen ASA",
+      "existing": "Nordkapp Seafood AS",
+      "relationship": "parent_subsidiary",
+      "difficulty": "hard",
+      "note": "Parent named in English ('Group') vs Norwegian ('Gruppen')."
+    },
+    {
+      "incoming": "Montclair Data Centers LLC",
+      "existing": "Quillfeather Infrastructure Partners LP",
+      "relationship": "parent_subsidiary",
+      "difficulty": "medium",
+      "note": "Acquirer (now parent) named in incoming note."
+    },
+    {
+      "incoming": "Stowell Reinsurance Limited",
+      "existing": "Corrigan Mutual Brokers Ltd",
+      "relationship": "affiliate",
+      "difficulty": "hard",
+      "note": "Common ownership; note abbreviates 'Reinsurance' as 'Re'; evidence on one side only."
+    },
+    {
+      "incoming": "Kanazawa-Orion Semiconductor JV",
+      "existing": "Orion Wafer Systems Inc",
+      "relationship": "affiliate",
+      "difficulty": "medium",
+      "note": "Existing entry is a JV parent of the incoming JV."
+    },
+    {
+      "incoming": "Pacific Rim Tea Importers LLC",
+      "existing": "Sakuragawa Trading K.K.",
+      "relationship": "shared_officer",
+      "difficulty": "hard",
+      "note": "Same director, Japanese surname-first capitalised order vs Western order."
+    },
+    {
+      "incoming": "Brandvlei Mining (Pty) Ltd",
+      "existing": "Kalahari Copper Resources Ltd",
+      "relationship": "shared_officer",
+      "difficulty": "hard",
+      "note": "Same finance officer, initials vs full hyphenated given name."
+    }
+  ],
+  "hard_negatives": [
+    {
+      "incoming": "Selworth Ceramics Ltd",
+      "existing": "Selworth Fasteners Pvt Ltd",
+      "why_not": "Only the word 'Selworth' is shared: a ceramics business (UK) vs a fasteners business (IN), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Elderwyke Bakeries B.V.",
+      "existing": "Elderwyke Toys GmbH",
+      "why_not": "Only the word 'Elderwyke' is shared: a bakery business (NL) vs a toy business (DE), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Marlwick Dental Pte Ltd",
+      "existing": "Marlwick Hotels Ltd",
+      "why_not": "Only the word 'Marlwick' is shared: a dental practice business (SG) vs a hotel business (NG), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Falmere Software AG",
+      "existing": "Falmere Optics B.V.",
+      "why_not": "Only the word 'Falmere' is shared: a software business (DE) vs a optics business (NL), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Woldcombe Bicycles Pvt Ltd",
+      "existing": "Woldcombe Optics LLC",
+      "why_not": "Only the word 'Woldcombe' is shared: a bicycle business (IN) vs a optics business (US), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Penhaven Robotics Corp",
+      "existing": "Penhaven Toys Pte Ltd",
+      "why_not": "Only the word 'Penhaven' is shared: a robotics business (US) vs a toy business (SG), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Tormere Optics Pte Ltd",
+      "existing": "Tormere Paints B.V.",
+      "why_not": "Only the word 'Tormere' is shared: a optics business (SG) vs a paint business (NL), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Pelton Optics Pty Ltd",
+      "existing": "Pelton Energy plc",
+      "why_not": "Only the word 'Pelton' is shared: a optics business (AU) vs a energy business (UK), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Glenhaven Robotics Limited",
+      "existing": "Glenhaven Ceramics Pvt Ltd",
+      "why_not": "Only the word 'Glenhaven' is shared: a robotics business (UK) vs a ceramics business (IN), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Elderley Toys LLC",
+      "existing": "Elderley Vineyards B.V.",
+      "why_not": "Only the word 'Elderley' is shared: a toy business (US) vs a winery business (NL), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Thornhaven Ceramics B.V.",
+      "existing": "Thornhaven Printing Corp",
+      "why_not": "Only the word 'Thornhaven' is shared: a ceramics business (NL) vs a printing business (US), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Ashmere Mining plc",
+      "existing": "Ashmere Cosmetics B.V.",
+      "why_not": "Only the word 'Ashmere' is shared: a mining business (UK) vs a cosmetics business (NL), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Scarhurst Furniture LLC",
+      "existing": "Scarhurst Bakeries Pte Ltd",
+      "why_not": "Only the word 'Scarhurst' is shared: a furniture business (US) vs a bakery business (SG), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Gildale Recruitment B.V.",
+      "existing": "Gildale Vineyards plc",
+      "why_not": "Only the word 'Gildale' is shared: a recruitment business (NL) vs a winery business (UK), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Cormden Toys GmbH",
+      "existing": "Cormden Paints Pvt Ltd",
+      "why_not": "Only the word 'Cormden' is shared: a toy business (DE) vs a paint business (IN), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Halden Brewing Pte Ltd",
+      "existing": "Halden Vineyards B.V.",
+      "why_not": "Only the word 'Halden' is shared: a brewery business (SG) vs a winery business (NL), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Yarwell Aerospace GmbH",
+      "existing": "Yarwell Software Pty Ltd",
+      "why_not": "Only the word 'Yarwell' is shared: a aerospace business (DE) vs a software business (AU), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Yartarn Seafood B.V.",
+      "existing": "Yartarn Software Pvt Ltd",
+      "why_not": "Only the word 'Yartarn' is shared: a seafood business (NL) vs a software business (IN), with no ownership, former-name or officer link in either note."
+    },
+    {
+      "incoming": "Ignacio Castellanos",
+      "existing": "Pilar Castellanos",
+      "why_not": "Same surname, different people (Ignacio vs Pilar; Valencia ceramics owner vs Bogotá coffee exporter)."
+    },
+    {
+      "incoming": "Ryota Nakashima",
+      "existing": "Sayuri Nakashima",
+      "why_not": "Same surname, different people (Ryota vs Sayuri; Nagoya auto-parts executive vs Kobe hotel owner)."
+    },
+    {
+      "incoming": "Duarte Pereira-Lobo",
+      "existing": "Inês Pereira-Lobo",
+      "why_not": "Same surname, different people (Duarte vs Inês; Porto cork exporter vs Lisbon fintech founder)."
+    },
+    {
+      "incoming": "Tomasz Kowalczyk",
+      "existing": "Marta Kowalczyk",
+      "why_not": "Same surname, different people (Tomasz vs Marta; Kraków furniture maker vs Wrocław software tester)."
+    },
+    {
+      "incoming": "Antoine Delacourt",
+      "existing": "Solène Delacourt",
+      "why_not": "Same surname, different people (Antoine vs Solène; Rennes dairy farmer vs Paris fashion buyer)."
+    },
+    {
+      "incoming": "Fergus Abernethy",
+      "existing": "Moira Abernethy",
+      "why_not": "Same surname, different people (Fergus vs Moira; Inverness distiller vs Glasgow solicitor)."
+    },
+    {
+      "incoming": "Transworld Fresh Produce Holdings",
+      "existing": "Transworld Freight Holdings Inc",
+      "why_not": "Fresh produce vs freight; 'Transworld Holdings' is generic."
+    },
+    {
+      "incoming": "International Precision Castings Inc",
+      "existing": "International Precision Coatings GmbH",
+      "why_not": "Castings vs coatings, US vs Germany; generic words only."
+    },
+    {
+      "incoming": "Asia Pacific Lumen Holdings",
+      "existing": "Asia Pacific Lantern Holdings",
+      "why_not": "Lumen vs Lantern are different names; only generic region words shared."
+    },
+    {
+      "incoming": "Meridian Crest Holdings Ltd",
+      "existing": "Meridian Coast Holdings Inc",
+      "why_not": "Crest vs Coast; generic 'Meridian Holdings'."
+    },
+    {
+      "incoming": "National Seaboard Insurance Co",
+      "existing": "National Seaboard Freight Corp",
+      "why_not": "Insurer vs freight carrier; no ownership link."
+    },
+    {
+      "incoming": "Shiranui Logistics K.K.",
+      "existing": "Copperleaf Freight Inc",
+      "why_not": "Different directors (Kenji vs Kenta Moriyama)."
+    },
+    {
+      "incoming": "Halvorsen Shipping AS",
+      "existing": "Ingrid Halvorsen",
+      "why_not": "Ingrid is not the named director (Kristian); a shared surname is not a link."
+    }
+  ]
+}

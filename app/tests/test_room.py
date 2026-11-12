@@ -2,7 +2,7 @@ from dataclasses import asdict
 
 import pytest
 
-from sealroom.barrier import Policy, Session, policy_from_verdict, verify_log
+from sealroom.room import Policy, Session, policy_from_verdict, verify_log
 
 
 def test_screen_blocks_person():
@@ -49,6 +49,6 @@ def test_log_chain_detects_tampering():
 
 
 def test_policy_from_verdict():
-    v = {"conflicts": [{"existing": "Orrin Biologics"}, {"existing": "Harbinger Foods"}]}
+    v = [{"existing": {"name": "Orrin Biologics"}}, {"existing": {"name": "Harbinger Foods"}}]
     p = policy_from_verdict(v, "jane", lambda n: "client:" + n.split()[0].lower())
     assert p.screens["jane"] == {"client:orrin", "client:harbinger"}

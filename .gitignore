@@ -8,3 +8,4 @@ __pycache__/
 verdict*.json
 .DS_Store
 .state/
+node_modules/
