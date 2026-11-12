@@ -21,6 +21,6 @@ RUN cd app && uv sync --frozen --no-dev
 COPY deploy/near-config.toml /root/.config/near-cli/config.toml
 COPY deploy/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-ENV HOST=0.0.0.0 PORT=8080 SEALROOM_STATE=/data/state PYTHONUNBUFFERED=1
-EXPOSE 8080
+ENV HOST=0.0.0.0 PORT=10000 SEALROOM_STATE=/srv/.state PYTHONUNBUFFERED=1
+EXPOSE 10000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

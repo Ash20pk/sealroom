@@ -140,6 +140,15 @@ uv run sealroom --model deepseek-ai/DeepSeek-V4.1-Flash-1017 eval ../eval/hard
 
 Every eval run also replays its own proof bundle, so a score is only reported for a verdict that verifies.
 
+### Host the web demo (free)
+
+`render.yaml` deploys the web app to Render's free plan from this repo: **New > Blueprint**, pick the repo, and fill in two secrets.
+
+- `NEARAI_API_KEY`: a NEAR AI Cloud key with credit. Every run calls the model, so this is the one thing that costs money.
+- `SEALROOM_KEYS`: a base64 tar.gz with `near-credentials/testnet/*.json` (a `record_check`-only key for the operator and the agent's `seal_session`-only key) and `identity/*.json` (the demo firms and lawyers). The server never gets a full-access key.
+
+The server caps runs per visitor and per day (`SEALROOM_RUNS_PER_IP_HOUR`, `SEALROOM_RUNS_PER_DAY`) and runs one check in the enclave at a time. A free instance sleeps after 15 idle minutes and takes about a minute to wake. Proof bundles kept on the server are lost when it sleeps; the records on NEAR are not.
+
 ### Your own deployment
 
 ```bash

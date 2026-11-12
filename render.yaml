@@ -1,0 +1,21 @@
+# Hosted web demo on Render's free plan. New > Blueprint, pick this repo, then paste
+# the two secrets when asked. The free instance sleeps after 15 idle minutes and
+# takes about a minute to wake.
+services:
+  - type: web
+    name: sealroom
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NEARAI_API_KEY
+        sync: false
+      - key: SEALROOM_KEYS
+        sync: false
+      - key: SEALROOM_RUNS_PER_IP_HOUR
+        value: "6"
+      - key: SEALROOM_RUNS_PER_DAY
+        value: "80"
