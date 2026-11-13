@@ -13,11 +13,24 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; background: #fff; }
   body {
-    width: 210mm; height: 297mm; padding: 8mm 12mm 6mm; overflow: hidden;
     font: 400 8pt/1.34 -apple-system, "Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink);
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    display: flex; flex-direction: column; gap: 2.1mm;
   }
+  .page {
+    width: 210mm; height: 297mm; padding: 8mm 12mm 6mm; overflow: hidden;
+    display: flex; flex-direction: column; gap: 2.1mm; page-break-after: always; break-after: page;
+  }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  .stack { width: 100%; border-collapse: collapse; font-size: 7.8pt; }
+  .stack th { text-align: left; font-size: 7pt; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0 2mm 1.2mm 0; border-bottom: 1px solid var(--line); }
+  .stack td { padding: 1.5mm 2mm 1.5mm 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .stack td:first-child { font-weight: 700; width: 40mm; }
+  .stack td:nth-child(2) { width: 62mm; color: var(--muted); }
+  .stack tr.group td { padding-top: 2.6mm; border-bottom: none; font-size: 8.6pt; color: var(--iris); font-weight: 800; }
+  code { font: 600 7.2pt/1.2 ui-monospace, "SF Mono", Menlo, monospace; background: var(--soft); padding: .2mm 1mm; border-radius: 1mm; }
+  .accts { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 4mm; font-size: 7.6pt; }
+  .accts span { color: var(--muted); }
+  .gaps div::before { content: "–"; color: var(--amber); }
   h1 { font-size: 20pt; line-height: 1.05; margin: 0; letter-spacing: -.02em; }
   h1 span { color: var(--iris); }
   h2 { font-size: 10.5pt; margin: 0 0 1.4mm; letter-spacing: -.01em; display: flex; align-items: center; gap: 2mm; }
@@ -53,13 +66,14 @@
 </style>
 </head>
 <body>
+<div class="page">
 
 <header>
   <div>
     <h1>How <span>Sealroom</span> works</h1>
     <p class="lede">Two law firms find out whether they share clients without either one showing its client list to anyone. Then the firm's AI assistant works with the conflicted clients walled off. Every step leaves a receipt anyone can check.</p>
   </div>
-  <div class="tag">Built on NEAR + NEAR AI Cloud<br>One-page overview, November 2026</div>
+  <div class="tag">Built on NEAR + NEAR AI Cloud<br>Overview, November 2026 · Page 1 of 2</div>
 </header>
 
 <div class="grid2">
@@ -219,6 +233,70 @@
   <span>Sealroom · built at NEAR HACKATHON 2026</span>
   <span>Contract v2.sealroom-64716.testnet · NEAR testnet</span>
 </footer>
+
+</div>
+
+<div class="page">
+<header>
+  <div>
+    <h1>Built on <span>NEAR</span></h1>
+    <p class="lede">Every NEAR building block Sealroom uses, what it does here, and where to find it in the code. The NEAR AI Cloud parts keep the lists private; the NEAR Protocol parts make every claim checkable.</p>
+  </div>
+  <div class="tag">For builders and judges<br>Page 2 of 2</div>
+</header>
+
+<section class="card">
+<table class="stack">
+  <tr><th>What we used</th><th>What it does in Sealroom</th><th>Details</th></tr>
+
+  <tr class="group"><td colspan="3">NEAR AI Cloud: the sealed room</td></tr>
+  <tr><td>Private inference in a TEE</td><td>Runs the conflict model on lists nobody else can read</td><td><code>z-ai/glm-5.3-flash</code> on NEAR AI Cloud, inside an Intel TDX confidential VM with GPU TEE</td></tr>
+  <tr><td>Attestation API</td><td>Proves the model runs in a genuine, non-debug enclave before any list is sent</td><td><code>/v1/attestation/report</code> with a fresh nonce; quote checked against Intel PCS with <code>dcap-qvl</code>; the model key and nonce must be bound in the quote (<code>attest.py</code>)</td></tr>
+  <tr><td>End-to-end encryption</td><td>Each firm encrypts its own list in its browser, straight to the enclave's key</td><td>Protocol v2: X25519 + HKDF-SHA256 + XChaCha20-Poly1305, a fresh ephemeral key per field (<code>e2ee.py</code>, <code>sealcrypto.js</code>)</td></tr>
+  <tr><td>Signed responses</td><td>The enclave signs every request and reply, so a verdict can't be altered after the fact</td><td><code>/v1/signature/{chat_id}</code>, ed25519, checked against the attested key off-chain and on-chain (<code>nearai.py</code>)</td></tr>
+
+  <tr class="group"><td colspan="3">NEAR Protocol: the notary</td></tr>
+  <tr><td>Rust smart contract</td><td>Identity registry, conflict-check records, agent session seals</td><td><code>near-sdk</code> 5, built with <code>cargo-near</code>, deployed to <code>v2.sealroom-64716.testnet</code> (<code>contract/src/lib.rs</code>)</td></tr>
+  <tr><td><code>env::ed25519_verify</code></td><td>The contract itself checks both firms' signatures and up to 48 enclave signatures per check</td><td>About 18 Tgas for a full check; a record with a missing or forged signature is refused</td></tr>
+  <tr><td><code>env::sha256</code></td><td>Stores one root over every signed enclave call</td><td>Lets anyone show a call was dropped or swapped</td></tr>
+  <tr><td>Named accounts and sub-accounts</td><td>Each firm is an account; each lawyer is a real sub-account with their own key</td><td><code>jane.sr-firm-south-64716.testnet</code>, created by the firm and deactivatable by it</td></tr>
+  <tr><td>Function-call access keys</td><td>The research agent's only key can call <code>seal_session</code> and nothing else</td><td>0.5 NEAR gas allowance; the temporary full-access key is deleted during <code>sealroom setup</code></td></tr>
+  <tr><td><code>predecessor_account_id</code></td><td>Who may do what: a firm manages only its own members and agents; an agent seals only its own sessions</td><td>The contract re-checks the lawyer's signature, the model and the prompt hash on every seal</td></tr>
+  <tr><td>Contract logs</td><td>Explain a refusal even when testnet reports a bare trap</td><td>The contract logs <code>sealroom: &lt;reason&gt;</code> before it panics; the CLI reads it back</td></tr>
+
+  <tr class="group"><td colspan="3">Tooling</td></tr>
+  <tr><td>near-cli-rs</td><td>Deploys, sets up accounts and keys, and signs the server's transactions</td><td>0.22, legacy keychain, so keys never pass through our code (<code>chain.py</code>, <code>setup.py</code>)</td></tr>
+  <tr><td>FastNEAR RPC</td><td>Reads firms, members, agents and records; fetches refusal logs</td><td><code>test.rpc.fastnear.com</code></td></tr>
+  <tr><td>NearBlocks</td><td>Every verdict and session in the app links to its transaction</td><td><code>testnet.nearblocks.io</code></td></tr>
+</table>
+</section>
+
+<section class="card soft">
+  <h2>On testnet now</h2>
+  <div class="accts">
+    <div><b>Contract</b> <span>v2.sealroom-64716.testnet</span></div>
+    <div><b>Operator</b> <span>sealroom-64716.testnet</span></div>
+    <div><b>Firm (incoming)</b> <span>sr-firm-north-64716.testnet · Northgate &amp; Pryce LLP</span></div>
+    <div><b>Firm (existing)</b> <span>sr-firm-south-64716.testnet · Southwell Carrow LLP</span></div>
+    <div><b>Lawyers</b> <span>jane. and marcus.sr-firm-south-64716.testnet</span></div>
+    <div><b>Research agent</b> <span>research.sr-firm-south-64716.testnet</span></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Not covered yet</h2>
+  <div class="trust gaps" style="grid-template-columns:1fr">
+    <div>The contract can't verify an Intel quote itself. It checks the enclave's signatures, and the proof bundle carries the raw attestation so anyone can check the key.</div>
+    <div>We don't replay RTMR3 against the app compose or check NVIDIA GPU attestation through NRAS.</div>
+    <div>The access rules run on our server. Running it as a Shade Agent inside a TEE is the next step.</div>
+  </div>
+</section>
+
+<footer>
+  <span>Sealroom · built at NEAR HACKATHON 2026 · github.com/Ash20pk/sealroom</span>
+  <span>Contract v2.sealroom-64716.testnet · NEAR testnet</span>
+</footer>
+</div>
 
 </body>
 </html>

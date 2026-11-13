@@ -6,6 +6,8 @@ When a partner moves firms, both firms have to check the partner's old clients a
 
 Built at NEAR HACKATHON for the **Privacy & Private AI** and **AI Security & Defense** tracks.
 
+Two-page overview, including every NEAR and NEAR AI Cloud piece we use: [docs/sealroom-how-it-works.pdf](docs/sealroom-how-it-works.pdf)
+
 - Contract: [`v2.sealroom-64716.testnet`](https://testnet.nearblocks.io/address/v2.sealroom-64716.testnet)
 - Model: an attested NEAR AI Cloud model in an Intel TDX enclave, end-to-end encrypted
 
