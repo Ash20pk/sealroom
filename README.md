@@ -8,6 +8,7 @@ Built at NEAR HACKATHON for the **Privacy & Private AI** and **AI Security & Def
 
 Two-page overview, including every NEAR and NEAR AI Cloud piece we use: [docs/sealroom-how-it-works.pdf](docs/sealroom-how-it-works.pdf)
 
+- **Live demo: https://54-226-24-21.sslip.io** (each visitor gets a few runs an hour; a check takes about two minutes)
 - Contract: [`v2.sealroom-64716.testnet`](https://testnet.nearblocks.io/address/v2.sealroom-64716.testnet)
 - Model: an attested NEAR AI Cloud model in an Intel TDX enclave, end-to-end encrypted
 
