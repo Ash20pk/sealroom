@@ -1,0 +1,25 @@
+# Self-hosted web demo: the app plus Caddy for HTTPS.
+#   cp .env.example .env   # NEARAI_API_KEY, SEALROOM_KEYS, SEALROOM_DOMAIN
+#   docker compose -p sealroom-hackathon -f deploy/compose.yaml up -d --build
+# Remove everything: docker compose -p sealroom-hackathon -f deploy/compose.yaml down -v --rmi local
+services:
+  app:
+    build: { context: .., dockerfile: Dockerfile }
+    env_file: ../.env
+    environment:
+      SEALROOM_RUNS_PER_IP_HOUR: "6"
+      SEALROOM_RUNS_PER_DAY: "80"
+    volumes: [state:/srv/.state]
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.8-alpine
+    command: caddy reverse-proxy --from ${SEALROOM_DOMAIN:?set SEALROOM_DOMAIN in .env} --to app:10000
+    ports: ["80:80", "443:443"]
+    volumes: [caddy:/data]
+    depends_on: [app]
+    restart: unless-stopped
+
+volumes:
+  state:
+  caddy:
