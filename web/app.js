@@ -202,9 +202,12 @@ async function loadFirmIdentity(side) {
 
 /* ---------- conflict check ---------- */
 
+let opening = null; // both firms seal into the same check, even when sealed at the same moment
 async function ensureRoom() {
   if (room) return room;
-  room = await api("/api/check/open", { incoming_count: firms.incoming.parties.length, existing_count: firms.existing.parties.length });
+  opening ||= api("/api/check/open", { incoming_count: firms.incoming.parties.length, existing_count: firms.existing.parties.length })
+    .finally(() => { opening = null; });
+  room = await opening;
   return room;
 }
 
@@ -219,13 +222,15 @@ function setupFirm(side, file) {
     renderList(side);
   });
   $(".seal-btn", el).addEventListener("click", async () => {
-    if (el.dataset.sealed !== undefined || !model) return;
+    if (el.dataset.sealed !== undefined || el.dataset.sealing !== undefined || !model) return;
     const btn = $(".seal-btn", el);
     btn.textContent = "Sealing…";
+    el.dataset.sealing = "";
     try {
       await ensureRoom();
       await sealList(side);
     } catch (e) {
+      delete el.dataset.sealing;
       btn.textContent = "Seal this list";
       $("#check-hint").className = "hint error";
       $("#check-hint").textContent = e.message;
