@@ -7,76 +7,85 @@
 <meta name="description" content="Conflict checks and ethical walls for legal AI, computed inside an attested enclave and provable on NEAR.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="backdrop" aria-hidden="true"></div>
-<header class="bar">
-  <div class="brand">
-    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="26" height="5" rx="2.5"/><rect x="3" y="13.5" width="17" height="5" rx="2.5"/><rect x="3" y="21" width="22" height="5" rx="2.5"/></svg>
-    <span>Sealroom</span>
+<header class="top">
+  <div class="wrap top-in">
+    <span class="brand">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="1" width="20" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><rect x="5" y="9" width="12" height="4" fill="currentColor"/></svg>
+      Sealroom
+    </span>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" aria-selected="true" data-tab="check">Conflict check</button>
+      <button role="tab" aria-selected="false" data-tab="agent">Research agent</button>
+      <button role="tab" aria-selected="false" data-tab="verify">Verify a record</button>
+    </nav>
+    <button class="enclave" id="enclave" title="Check the enclave again">
+      <span class="dot" data-state="pending" aria-hidden="true"></span><span id="enclave-text">Checking the enclave…</span>
+    </button>
   </div>
-  <nav class="tabs" role="tablist">
-    <button role="tab" aria-selected="true" data-tab="check">Conflict check</button>
-    <button role="tab" aria-selected="false" data-tab="agent">Agent in the Sealroom</button>
-    <button role="tab" aria-selected="false" data-tab="verify">Verify a record</button>
-  </nav>
-  <button class="enclave" id="enclave" title="Re-check the enclave">
-    <span class="dot" data-state="pending"></span><span id="enclave-text">Checking the enclave…</span>
-  </button>
 </header>
 
-<main>
+<main class="wrap">
   <section id="tab-check" class="tab" role="tabpanel">
     <div class="intro">
       <h1>Check a lateral hire for conflicts. Neither firm shows its client list.</h1>
-      <p>Exact names are matched by private set intersection. Everything subtler goes to a model in an Intel TDX enclave, which answers with entry numbers only. Every step is signed by an identity registered on NEAR.</p>
+      <p>Each firm seals its list in this browser. Exact names are matched privately, and a model in an attested enclave looks for the rest. It answers with entry numbers, never names. NEAR checks every signature before it keeps the record.</p>
     </div>
 
-    <ol class="steps" id="steps">
-      <li data-step="attest">Confirm the enclave is attested</li>
-      <li data-step="identity">Check each firm's key on NEAR</li>
-      <li data-step="seal">Each firm seals and signs its list</li>
-      <li data-step="exact">Match exact names privately</li>
-      <li data-step="send">The enclave checks every chunk</li>
-      <li data-step="sign">Check the enclave's signatures</li>
-      <li data-step="anchor">NEAR verifies and records</li>
-      <li data-step="reveal">Each firm discloses only its matches</li>
-    </ol>
+    <section class="panel verdict" id="verdict" aria-labelledby="verdict-title" hidden></section>
 
     <div class="room">
-      <article class="firm card" id="firm-incoming" data-side="incoming">
-        <header>
-          <h2 class="firm-name">Incoming partner</h2>
+      <article class="panel firm" id="firm-incoming" data-side="incoming">
+        <header class="firm-head">
+          <div class="firm-title"><h2 class="firm-name">Incoming partner</h2><span class="status">Not sealed</span></div>
           <p class="firm-role">The incoming partner's former clients and adverse parties</p>
           <div class="ident-slot"></div>
         </header>
-        <ol class="list" aria-live="polite"></ol>
-        <footer>
-          <label class="file">Replace list (CSV)<input type="file" accept=".csv"></label>
-          <button class="seal-btn">Seal this list</button>
+        <div class="register">
+          <div class="row head" aria-hidden="true"><span>Entry</span><span>Party</span><span>Role</span></div>
+          <ol class="list" aria-live="polite"></ol>
+        </div>
+        <footer class="firm-foot">
+          <label class="btn ghost file">Replace list (CSV)<input type="file" accept=".csv"></label>
+          <button class="btn dark seal-btn">Seal this list</button>
         </footer>
       </article>
 
-      <div class="middle">
-        <div class="stage" id="stage-check" role="img" aria-label="The enclave: a sealed, attested machine. Both lists go in encrypted; only matches come out."></div>
-        <button class="primary" id="run-check" disabled>Run conflict check</button>
-        <p class="hint" id="check-hint">Seal both lists to start.</p>
-        <div class="verdict card" id="verdict" hidden></div>
+      <aside class="middle" aria-label="The check">
+        <div class="panel steps-card">
+          <h2 id="steps-title">How this check runs</h2>
+          <ol class="steps" id="steps">
+            <li data-step="attest"><span class="mark">1</span><span class="txt">Confirm the enclave is genuine</span></li>
+            <li data-step="identity"><span class="mark">2</span><span class="txt">Check each firm's key on NEAR</span></li>
+            <li data-step="seal"><span class="mark">3</span><span class="txt">Each firm seals and signs its list</span></li>
+            <li data-step="exact"><span class="mark">4</span><span class="txt">Match exact names privately</span></li>
+            <li data-step="send"><span class="mark">5</span><span class="txt">The enclave checks every chunk</span></li>
+            <li data-step="sign"><span class="mark">6</span><span class="txt">Check the enclave's signatures</span></li>
+            <li data-step="anchor"><span class="mark">7</span><span class="txt">NEAR verifies and records</span></li>
+            <li data-step="reveal"><span class="mark">8</span><span class="txt">Each firm discloses only its matches</span></li>
+          </ol>
+        </div>
+        <button class="btn primary big" id="run-check" disabled>Run conflict check</button>
+        <p class="hint center" id="check-hint">Seal both lists to start.</p>
         <div class="ledger" id="ledger-check"><span>Records on NEAR</span><ol></ol></div>
-      </div>
+      </aside>
 
-      <article class="firm card" id="firm-existing" data-side="existing">
-        <header>
-          <h2 class="firm-name">Receiving firm</h2>
+      <article class="panel firm" id="firm-existing" data-side="existing">
+        <header class="firm-head">
+          <div class="firm-title"><h2 class="firm-name">Receiving firm</h2><span class="status">Not sealed</span></div>
           <p class="firm-role">The receiving firm's clients and adverse parties</p>
           <div class="ident-slot"></div>
         </header>
-        <ol class="list" aria-live="polite"></ol>
-        <footer>
-          <label class="file">Replace list (CSV)<input type="file" accept=".csv"></label>
-          <button class="seal-btn">Seal this list</button>
+        <div class="register">
+          <div class="row head" aria-hidden="true"><span>Entry</span><span>Party</span><span>Role</span></div>
+          <ol class="list" aria-live="polite"></ol>
+        </div>
+        <footer class="firm-foot">
+          <label class="btn ghost file">Replace list (CSV)<input type="file" accept=".csv"></label>
+          <button class="btn dark seal-btn">Seal this list</button>
         </footer>
       </article>
     </div>
@@ -84,62 +93,77 @@
 
   <section id="tab-agent" class="tab" role="tabpanel" hidden>
     <div class="intro">
-      <h1>Let the incoming partner use the firm's research agent, with the conflict walled off.</h1>
-      <p>The agent is its own NEAR account, owned by a partner and pinned to one model and one prompt. A lawyer signs each session. Every read is decided before the document reaches the model, and the agent seals the log with a key that can do nothing else.</p>
+      <h1>Give the new partner the firm's research agent, with the conflicts walled off.</h1>
+      <p>The lawyer signs each session. Every document the agent asks for is allowed or refused before the model sees it, and a refusal always reads the same. The agent seals the log on NEAR from its own account.</p>
     </div>
     <div class="agent">
-      <form class="ask card" id="ask">
-        <label for="person">Working as</label>
-        <select id="person"></select>
-        <div id="member-ident"></div>
-        <label for="question">Question</label>
-        <textarea id="question" rows="4">Give me a short brief on our beverage and textile clients' current plans.</textarea>
-        <label class="check"><input type="checkbox" id="use-verdict" checked> Wall off the conflicts from the last check</label>
-        <button class="primary" type="submit">Sign and ask the agent</button>
-        <p class="hint">Your signature names this agent, this question and these walls. NEAR checks it before the session can be sealed.</p>
-        <div class="agent-card">
-          <span class="ident-who">The agent</span>
+      <div class="agent-side">
+        <form class="panel ask" id="ask">
+          <div>
+            <label class="lbl" for="person">Working as</label>
+            <select id="person"></select>
+            <div id="member-ident"></div>
+          </div>
+          <div>
+            <label class="lbl" for="question">Question</label>
+            <textarea id="question" rows="4">Give me a short brief on our beverage and textile clients' current plans.</textarea>
+          </div>
+          <label class="check"><input type="checkbox" id="use-verdict" checked><span>Wall off the conflicts from the last check</span></label>
+          <button class="btn dark big" type="submit">Sign and ask the agent</button>
+          <p class="hint">Your signature covers this agent, this question and these walls. NEAR checks it before the session can be sealed.</p>
+        </form>
+        <div class="panel pad">
+          <h2 class="sub">The agent</h2>
           <div id="agent-ident"></div>
+          <div class="ledger" id="ledger-agent"><span>Sealed sessions on NEAR</span><ol></ol></div>
         </div>
-      </form>
-      <div class="agent-stage">
-        <div class="stage" id="stage-agent" role="img" aria-label="The enclave behind its seal. Allowed reads pass through; blocked reads stop at the wall."></div>
-        <ul class="legend"><li><span class="key allow"></span>Allowed reads pass into the enclave</li><li><span class="key block"></span>Blocked reads stop at the wall</li></ul>
-        <div class="ledger" id="ledger-agent"><span>Sealed sessions on NEAR</span><ol></ol></div>
       </div>
-      <div class="transcript card">
-        <div class="lens" role="radiogroup" aria-label="Whose view">
-          <button role="radio" aria-checked="true" data-lens="agent">What the agent sees</button>
-          <button role="radio" aria-checked="false" data-lens="reviewer">What a reviewer sees</button>
+
+      <section class="panel log" aria-labelledby="log-title">
+        <div class="log-head">
+          <div>
+            <h2 id="log-title">Session log</h2>
+            <p id="log-sub">Ask a question to start a session.</p>
+          </div>
+          <div class="lens" role="radiogroup" aria-label="Whose view">
+            <button type="button" role="radio" aria-checked="true" data-lens="agent">What the agent sees</button>
+            <button type="button" role="radio" aria-checked="false" data-lens="reviewer">What a reviewer sees</button>
+          </div>
         </div>
-        <ol class="turns" id="turns" data-lens="agent"><li class="empty">Ask a question to start a session.</li></ol>
+        <ol class="turns" id="turns" data-lens="agent"></ol>
         <div class="answer" id="answer" hidden></div>
-      </div>
+      </section>
     </div>
   </section>
 
   <section id="tab-verify" class="tab" role="tabpanel" hidden>
     <div class="intro">
-      <h1>Anyone can check a record.</h1>
-      <p>Look up a conflict check or a sealed agent session on NEAR. For a check, the proof bundle is replayed: every request rebuilt byte for byte, every signature checked, the verdict re-derived.</p>
+      <h1>Anyone can check a record. No account needed.</h1>
+      <p>Look up a conflict check or an agent session on NEAR. For a check, the proof bundle is replayed: every request rebuilt byte for byte, every signature checked and the verdict worked out again.</p>
     </div>
-    <div class="verify card">
-      <form class="lookup" id="lookup">
-        <select id="kind" aria-label="Record type">
-          <option value="check">Conflict check number</option>
-          <option value="session">Agent session id</option>
+    <form class="panel lookup" id="lookup" role="search">
+      <div class="field narrow">
+        <label class="lbl" for="kind">Record</label>
+        <select id="kind">
+          <option value="check">Conflict check</option>
+          <option value="session">Agent session</option>
         </select>
-        <input id="ref" placeholder="0" autocomplete="off" aria-label="Record">
-        <button class="primary" type="submit">Verify</button>
-      </form>
-      <div id="verify-out"></div>
-    </div>
+      </div>
+      <div class="field">
+        <label class="lbl" for="ref" id="ref-label">Check number</label>
+        <input id="ref" placeholder="0" autocomplete="off">
+      </div>
+      <button class="btn dark" type="submit">Verify</button>
+    </form>
+    <div id="verify-out"></div>
   </section>
 </main>
 
 <footer class="foot">
-  <span>Contract <a id="contract-link" target="_blank" rel="noopener"></a></span>
-  <span>Model <span id="model-name" class="mono"></span></span>
+  <div class="wrap foot-in">
+    <span>Contract <a id="contract-link" class="mono" target="_blank" rel="noopener"></a></span>
+    <span>Model <span id="model-name" class="mono ink"></span></span>
+  </div>
 </footer>
 
 <script type="module" src="app.js"></script>

@@ -1,5 +1,4 @@
 import _sodium from "https://cdn.jsdelivr.net/npm/libsodium-wrappers-sumo@0.7.15/+esm";
-import { Stage } from "./stage.js";
 import {
   useSodium, hex, unhex, canonical, sha256, sha256hex, encryptTo, normalise, elements, hashToPoint, mul, setHash, psiStart,
   envelopeMessage, psiMessage, revealMessage, verifySig,
@@ -15,9 +14,8 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 const short = (h, n = 10) => (h && h.length > n * 2 ? `${h.slice(0, n)}…${h.slice(-4)}` : h || "");
 const other = (side) => (side === "incoming" ? "existing" : "incoming");
 
-let stage = null;
-try { stage = new Stage(); } catch (e) { console.warn("3D view unavailable", e); }
-const S = new Proxy({}, { get: (_, k) => (...a) => (stage ? stage[k](...a) : Promise.resolve()) });
+const pad = (i) => String(i).padStart(2, "0");
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 let config = null;
 let model = null;
@@ -127,10 +125,19 @@ function parseCSV(text) {
   return parties.sort((a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : a.name.toLowerCase() > b.name.toLowerCase() ? 1 : 0));
 }
 
+// Sealed names show as redaction bars: that is all the server ever sees. After a check,
+// only the entries a firm disclosed come back, tagged with their conflict letters.
+const barWidth = (name) => Math.min(92, 20 + name.length * 2.4);
 function renderList(side) {
-  const el = $(`#firm-${side}`);
-  $(".list", el).innerHTML = firms[side].parties.map((p, i) =>
-    `<li style="--i:${i}" data-i="${i}"><span class="name">${esc(p.name)}</span><span class="role">${esc(p.role)}</span></li>`).join("");
+  const el = $(`#firm-${side}`), f = firms[side], sealed = el.dataset.sealed !== undefined;
+  $(".list", el).innerHTML = f.parties.map((p, i) => {
+    const m = f.matches?.[i];
+    const cell = m
+      ? `${m.refs.map((r) => `<span class="ref ${m.sev}">${r}</span>`).join("")}<span class="name">${esc(p.name)}</span>`
+      : sealed ? `<span class="bar" role="img" aria-label="Sealed name" style="width:${barWidth(p.name)}%"></span>`
+      : `<span class="name">${esc(p.name)}</span>`;
+    return `<li class="row${m ? ` match ${m.sev}` : ""}" style="--i:${i}" data-i="${i}"><span class="n">${pad(i)}</span><span class="p">${cell}</span><span class="r">${esc(p.role)}</span></li>`;
+  }).join("");
 }
 
 async function loadDemo(side, file) {
@@ -165,13 +172,11 @@ async function attest(fresh = false) {
   try {
     model = await api(`/api/attest${fresh ? "?fresh=1" : ""}`);
     dot.dataset.state = "ok";
-    S.setState("ok");
     $("#enclave-text").textContent = `Enclave verified, ${model.tcb_status === "UpToDate" ? "firmware up to date" : model.tcb_status}`;
     $("#model-name").textContent = model.model;
     step("attest", "done", `Model key <span class="mono">${short(model.signing_key)}</span>`);
   } catch (e) {
     dot.dataset.state = "bad";
-    S.setState("bad");
     $("#enclave-text").textContent = "Enclave not verified";
     step("attest", "fail", esc(e.message));
   }
@@ -182,11 +187,8 @@ async function attest(fresh = false) {
 
 function identityChip(acct, registeredKey, localKey, url, label) {
   const ok = registeredKey && localKey && registeredKey === localKey;
-  return `<a class="ident ${ok ? "ok" : "bad"}" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(acct)}">
-    <span class="ident-who">${esc(label)}</span>
-    <span class="mono">${esc(acct)}</span>
-    <span class="ident-key">${ok ? "Key matches NEAR registry" : registeredKey ? "Key does NOT match NEAR" : "Not registered on NEAR"} · <span class="mono">${short(registeredKey || localKey || "", 6)}</span></span>
-  </a>`;
+  const state = ok ? "key matches the NEAR registry" : registeredKey ? "key does not match the NEAR registry" : "not registered on NEAR";
+  return `<p class="ident ${ok ? "ok" : "bad"}" title="Key ${esc(registeredKey || localKey || "")}">${label ? `${esc(label)} ` : ""}<a class="mono" href="${esc(url)}" target="_blank" rel="noopener">${esc(acct)}</a>, ${state}</p>`;
 }
 
 async function loadFirmIdentity(side) {
@@ -237,11 +239,12 @@ function setupFirm(side, file) {
       return;
     }
     el.dataset.sealed = "";
-    await new Promise((r) => setTimeout(r, 380));
-    await S.absorb($$(".list .name", el));
-    btn.textContent = "Sealed and signed";
-    el.insertAdjacentHTML("beforeend",
-      `<p class="commit">Commitment <span class="mono">${short(firms[side].envelope.commitment, 12)}</span> · ${firms[side].envelope.ciphertexts.length} sealed chunk(s) · <a href="#" class="receipt">Save receipt</a></p>`);
+    delete el.dataset.sealing;
+    renderList(side);
+    $(".status", el).textContent = "Sealed and signed";
+    const env = firms[side].envelope;
+    $(".firm-foot", el).insertAdjacentHTML("beforeend",
+      `<p class="commit"><span>Commitment <span class="mono ink">${short(env.commitment, 12)}</span></span><span>${plural(env.ciphertexts.length, "sealed chunk")}</span><a href="#" class="receipt">Save receipt</a></p>`);
     $(".receipt", el).addEventListener("click", (ev) => {
       ev.preventDefault();
       const blob = new Blob([JSON.stringify(firms[side].secret, null, 2)], { type: "application/json" });
@@ -263,16 +266,13 @@ $("#run-check").addEventListener("click", async () => {
 
     current = "send";
     step("send", "busy", `Every chunk pair goes to the enclave; the server sees ciphertext and entry numbers only`);
-    S.working(true);
     const res = await api(`/api/check/${room.check_ref}/run`, {});
-    S.working(false);
     step("send", "done", `${res.verdict.calls} enclave call${res.verdict.calls > 1 ? "s" : ""}${res.verdict.truncated ? ", but some replies were cut off" : ", every chunk pair covered"}`);
     step("sign", "done", `${res.calls.length} reply signature${res.calls.length > 1 ? "s" : ""} by <span class="mono">${short(res.calls[0]?.signer)}</span>`);
     current = "anchor";
     step("anchor", "busy");
-    await S.drop($("#ledger-check"));
     addLedger("#ledger-check", `#${res.check_id}`, res.tx_url, `Check ${res.check_id} on NEAR`);
-    step("anchor", "done", `NEAR verified both firms' and the enclave's signatures · check #${esc(res.check_id)}`);
+    step("anchor", "done", `NEAR checked both firms' and the enclave's signatures. Recorded as check #${esc(res.check_id)}`);
 
     current = "reveal";
     step("reveal", "busy");
@@ -280,10 +280,11 @@ $("#run-check").addEventListener("click", async () => {
     const named = await discloseMatches("existing", res.verdict);
     step("reveal", "done", `Each firm disclosed only its ${res.verdict.pairs.length} matched entr${res.verdict.pairs.length === 1 ? "y" : "ies"}, signed`);
     await showVerdict(res, named.named);
+    $("#steps-title").textContent = "How this check ran";
+    $(".check span").textContent = `Wall off the conflicts from check #${res.check_id}`;
     btn.textContent = "Check recorded";
     $("#check-hint").textContent = "Reload the page to run another check.";
   } catch (e) {
-    S.working(false);
     step(current, "fail", esc(e.message));
     $("#check-hint").className = "hint error";
     $("#check-hint").textContent = e.message;
@@ -292,35 +293,72 @@ $("#run-check").addEventListener("click", async () => {
 });
 
 function addLedger(sel, label, href, title) {
+  $$(`${sel} li.new`).forEach((li) => li.classList.remove("new"));
   $(`${sel} ol`).insertAdjacentHTML("beforeend",
-    `<li><a href="${esc(href || "#")}" target="_blank" rel="noopener" title="${esc(title)}">${esc(label)}</a></li>`);
+    `<li class="new"><a href="${esc(href || "#")}" target="_blank" rel="noopener" title="${esc(title)}">${esc(label)}</a></li>`);
 }
 
 const REL = { same_entity: "Same entity", former_name: "Former name", parent_subsidiary: "Parent and subsidiary", affiliate: "Affiliated", shared_officer: "Shared officer" };
 const BASIS = { name: "the names", alias: "an alias", related_incoming: "the incoming note", related_existing: "the existing note", related_both: "both notes" };
-const SEV = { high: "Direct adversity", review: "Both clients · review", low: "Both adverse · low" };
-const SOURCE = { exact: "exact name match", enclave: "enclave", both: "exact match, confirmed by the enclave" };
+const SEV = { high: "Direct adversity", review: "Review", low: "Low" };
+const HOW = (c) => c.source === "exact" ? "Exact name match"
+  : c.source === "both" ? "Exact name match, confirmed by the enclave"
+  : `Enclave, from ${BASIS[c.basis] || esc(c.basis)}`;
+const letter = (k) => (k < 26 ? String.fromCharCode(65 + k) : String(k + 1));
+
+function verdictSummary(named) {
+  const n = (s) => named.filter((c) => c.severity === s).length;
+  const parts = [];
+  if (n("high")) parts.push(`${n("high")} ${n("high") === 1 ? "is" : "are"} direct adversity.`);
+  if (n("review")) parts.push(`${n("review")} involve${n("review") === 1 ? "s" : ""} clients of both firms and need${n("review") === 1 ? "s" : ""} a review.`);
+  if (n("low")) parts.push(`${n("low")} ${n("low") === 1 ? "has" : "have"} both parties adverse, which is low risk.`);
+  return parts.join(" ");
+}
 
 async function showVerdict(res, named) {
-  const hits = named.flatMap((c) => [$(`#firm-incoming .list li[data-i="${c.i}"]`), $(`#firm-existing .list li[data-i="${c.j}"]`)]).filter(Boolean);
-  const uniq = [...new Set(hits)];
-  await S.beams(uniq);
-  uniq.forEach((li, i) => { li.style.setProperty("--i", i); li.classList.add("match"); });
+  // Tag each matched entry in both registers with the letters of its conflicts.
+  const rank = { high: 0, review: 1, low: 2 };
+  for (const side of ["incoming", "existing"]) firms[side].matches = {};
+  named.forEach((c, k) => {
+    for (const [side, i] of [["incoming", c.i], ["existing", c.j]]) {
+      const m = (firms[side].matches[i] ||= { refs: [], sev: c.severity });
+      m.refs.push(letter(k));
+      if (rank[c.severity] < rank[m.sev]) m.sev = c.severity;
+    }
+  });
+  for (const side of ["incoming", "existing"]) renderList(side);
+
+  const nameOf = (side) => esc(config.firms[side].name || config.firms[side].account);
   const v = $("#verdict");
   v.hidden = false;
-  v.innerHTML = `<h3>${named.length ? `${named.length} potential conflict${named.length > 1 ? "s" : ""}` : "No conflicts found"}</h3>
-    ${named.map((c) => `<div class="pair"><span class="sev ${c.severity}">${SEV[c.severity]}</span>
-      <b>${esc(c.incoming.name)}</b> <span class="muted">(${esc(c.incoming.role)})</span> and <b>${esc(c.existing.name)}</b> <span class="muted">(${esc(c.existing.role)})</span>
-      <span class="rel">${REL[c.relationship] || esc(c.relationship)}, ${Math.round(c.confidence * 100)}% · from ${BASIS[c.basis] || esc(c.basis)} · ${SOURCE[c.source]}</span>
-      ${c.incoming.related || c.existing.related ? `<span class="rel">${[c.incoming.related, c.existing.related].filter(Boolean).map(esc).join(" · ")}</span>` : ""}</div>`).join("")}
-    <div class="proof">
-      <span>The server only ever saw entry numbers. Everything else in both lists stayed sealed.</span>
-      ${res.verdict.truncated ? `<span class="error">Some enclave replies were cut off; there may be more pairs.</span>` : ""}
-      <a href="${esc(res.tx_url)}" target="_blank" rel="noopener">See check #${esc(res.check_id)} on NEAR</a>
-      <a href="/api/check/${esc(res.check_id)}/bundle" download>Download the proof bundle</a>
-      <a href="#" id="go-verify">Replay every proof</a>
-    </div>`;
-  $("#go-verify").addEventListener("click", (e) => { e.preventDefault(); $("#kind").value = "check"; $("#ref").value = res.check_id; switchTab("verify"); $("#lookup").requestSubmit(); });
+  v.innerHTML = `<div class="verdict-head">
+      <div>
+        <h2 id="verdict-title" class="${named.length ? "" : "clear"}">${named.length ? plural(named.length, "potential conflict") : "No conflicts found"}</h2>
+        <p>${named.length ? verdictSummary(named) : "Nothing in either list matched, by name or by relationship."}</p>
+      </div>
+      <div class="links">
+        <a href="${esc(res.tx_url)}" target="_blank" rel="noopener">Check #${esc(res.check_id)} on NEAR</a>
+        <a href="/api/check/${esc(res.check_id)}/bundle" download>Download the proof bundle</a>
+        <a href="#" id="go-verify">Replay every proof</a>
+      </div>
+    </div>
+    ${named.length ? `<div class="table-scroll"><table class="vt">
+      <thead><tr><th>Conflict</th><th>${nameOf("incoming")}</th><th>${nameOf("existing")}</th><th>Relationship</th><th>How it was found</th></tr></thead>
+      <tbody>${named.map((c, k) => {
+        const notes = [c.incoming.related, c.existing.related].filter(Boolean).map(esc).join(". ");
+        return `<tr>
+          <td><span class="ref ${c.severity}">${letter(k)}</span><span class="sev ${c.severity}">${SEV[c.severity] || esc(c.severity)}</span></td>
+          <td><span class="who">${esc(c.incoming.name)}</span><br><span class="sm">${esc(c.incoming.role)}, entry ${pad(c.i)}</span></td>
+          <td><span class="who">${esc(c.existing.name)}</span><br><span class="sm">${esc(c.existing.role)}, entry ${pad(c.j)}</span></td>
+          <td>${REL[c.relationship] || esc(c.relationship)} <span class="muted">${Math.round(c.confidence * 100)}%</span>${notes ? `<br><span class="sm">${notes}</span>` : ""}</td>
+          <td class="sm">${HOW(c)}</td>
+        </tr>`;
+      }).join("")}</tbody>
+    </table></div>` : ""}
+    ${res.verdict.truncated ? `<p class="foot-note error">Some enclave replies were cut off, so there may be more conflicts than shown.</p>` : ""}
+    <p class="foot-note">The server only saw entry numbers. Each firm disclosed its own matched entries, signed. Every other entry stays sealed.</p>`;
+  $("#go-verify").addEventListener("click", (e) => { e.preventDefault(); $("#kind").value = "check"; syncRefLabel(); $("#ref").value = res.check_id; switchTab("verify"); $("#lookup").requestSubmit(); });
+  v.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
 }
 
 /* ---------- agent ---------- */
@@ -333,13 +371,13 @@ $$(".lens button").forEach((b) => b.addEventListener("click", () => {
 function renderAgentIdentity() {
   const a = config.agent;
   $("#agent-ident").innerHTML = a.firm ? `
-    <a href="${esc(a.url)}" target="_blank" rel="noopener" class="mono">${esc(a.account)}</a>
-    <dl class="record small">
+    <dl class="rec">
+      <dt>Account</dt><dd><a class="mono" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.account)}</a></dd>
       <dt>Owner</dt><dd class="mono">${esc(a.owner)}</dd>
       <dt>Model</dt><dd class="mono">${esc(a.model)}</dd>
-      <dt>Prompt</dt><dd>${a.prompt_matches ? "matches the hash registered on NEAR" : "<span class='error'>differs from NEAR</span>"}</dd>
-      <dt>Key</dt><dd>can only call <span class="mono">seal_session</span></dd>
-    </dl>` : `<span class="error">Agent not registered. Run <span class="mono">sealroom setup</span>.</span>`;
+      <dt>Prompt</dt><dd>${a.prompt_matches ? "Matches the hash registered on NEAR" : "<span class='error'>Differs from the hash on NEAR</span>"}</dd>
+      <dt>Key</dt><dd>Can only call <span class="mono">seal_session</span></dd>
+    </dl>` : `<p class="error">The agent is not registered yet. Run <span class="mono">sealroom setup</span>.</p>`;
 }
 
 async function renderMember() {
@@ -347,25 +385,33 @@ async function renderMember() {
   const m = config.members.find((x) => x.account === acct);
   let local = ids[acct];
   if (!local) { try { local = loadIdentity(await api(`/api/demo/identity/${acct}`)); } catch { /* shown below */ } }
-  $("#member-ident").innerHTML = identityChip(acct, m?.key, local?.pk, m?.url, m ? m.name : "Member");
+  $("#member-ident").innerHTML = identityChip(acct, m?.key, local?.pk, m?.url, "");
+}
+
+// One row of the session log. Callers pass text that is already escaped.
+function turn({ cls = "", tag, what, said = "", reason = "", sig = "", mono = false }) {
+  $("#turns").insertAdjacentHTML("beforeend", `<li class="${cls} enter"><span class="tag">${tag}</span>
+    <span class="body"><span class="what">${what}</span>${said ? `<span class="said">${said}</span>` : ""}${reason ? `<span class="reason${mono ? " mono" : ""}">${reason}</span>` : ""}</span>
+    <span class="sig" title="${sig ? "Reply signed by the enclave" : ""}">${sig}</span></li>`);
+  return $("#turns").lastElementChild;
 }
 
 $("#ask").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = $("#ask button[type=submit]");
   btn.disabled = true;
-  const turns = $("#turns");
-  turns.innerHTML = `<li class="empty">Preparing the session for signature…</li>`;
+  $("#turns").innerHTML = "";
+  $("#log-title").textContent = "Session log";
+  $("#log-sub").textContent = "Preparing the session for signature…";
   $("#answer").hidden = true;
   const member = $("#person").value;
   try {
     const prep = await api("/api/agent/prepare", { member, question: $("#question").value.trim(), use_verdict: $("#use-verdict").checked });
     if (!ids[member]) throw new Error(`No key for ${member} in this browser`);
     const authorization = sign(member, prep.message);
-    turns.innerHTML = `<li><span class="what">Signed by ${esc(ids[member].name)}</span>
-      <span class="said">Session ${esc(prep.session_id)}, agent ${esc(prep.agent)}</span>
-      <span class="reason mono">${esc(prep.message)}</span></li>`;
-    S.working(true);
+    $("#log-title").innerHTML = `Session <span class="mono">${esc(prep.session_id)}</span>`;
+    $("#log-sub").textContent = `Signed by ${ids[member].name}. Waiting for the agent…`;
+    turn({ tag: "Signed", what: `${esc(ids[member].name)} signed the session for ${esc(prep.agent)}`, reason: esc(prep.message), mono: true });
     const res = await fetch("/api/agent/run", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ session_id: prep.session_id, authorization }) });
     if (!res.ok) throw new Error((await res.json()).detail);
     const reader = res.body.getReader();
@@ -383,90 +429,104 @@ $("#ask").addEventListener("submit", async (e) => {
     }
     await agentQueue;
   } catch (err) {
-    turns.insertAdjacentHTML("beforeend", `<li class="block"><span class="what">Stopped</span><span class="said">${esc(err.message)}</span></li>`);
+    turn({ cls: "block", tag: "Stopped", what: esc(err.message) });
+    $("#log-sub").textContent = "The session stopped before it was sealed.";
   }
-  S.working(false);
   btn.disabled = false;
 });
 
 let agentQueue = Promise.resolve();
 function onAgentEvent(ev) { agentQueue = agentQueue.then(() => handleAgentEvent(ev)); }
 
+const REFUSAL = "Told: Access to this material is not available in this session.";
+let sessionId = null;
+
 async function handleAgentEvent(ev) {
-  const turns = $("#turns");
   if (ev.type === "start") {
+    sessionId = ev.session_id;
     const screens = Object.values(ev.policy.screens).flat();
-    turns.insertAdjacentHTML("beforeend", `<li data-session="${esc(ev.session_id)}"><span class="what">Session ${esc(ev.session_id)}</span>
-      <span class="reason">${screens.length ? `Walled off for ${esc(ev.member_name)}: <b>${screens.map(esc).join(", ")}</b>` : `No walls apply to ${esc(ev.member_name)}`}</span></li>`);
+    $("#log-sub").textContent = `Signed by ${ev.member_name}. ${screens.length ? `Walled off: ${screens.join(", ")}.` : `No walls apply to ${ev.member_name}.`}`;
   } else if (ev.type === "step") {
-    const t = ev.turn, a = t.action;
-    const sig = `<span class="sig">Enclave-signed reply <span class="mono">${short(t.chat_id, 8)}</span></span>`;
+    const t = ev.turn, a = t.action, sig = esc((t.chat_id || "").slice(0, 8));
     if (a.action === "read") {
       const d = t.decision;
-      turns.insertAdjacentHTML("beforeend", `<li class="${d.allowed ? "allow" : "block"} pending">
-        <span class="what">Reads ${esc(a.id)}</span>
-        <span class="said">${d.allowed ? "Gets the document." : "Told: “Access to this material is not available in this session.”"}</span>
-        <span class="reason"><b>${d.allowed ? "Allowed" : "Blocked"}</b>: ${esc(d.reason)}</span>${sig}</li>`);
-      const li = turns.lastElementChild;
-      await S.read(li, d.allowed);
-      li.classList.remove("pending");
+      turn({ cls: d.allowed ? "allow" : "block", tag: d.allowed ? "Allowed" : "Refused", what: `Asks for ${esc(a.id)}`,
+        said: d.allowed ? "Gets the document." : REFUSAL, reason: esc(d.reason), sig });
     } else {
-      turns.insertAdjacentHTML("beforeend", `<li><span class="what">Answers</span>${sig}</li>`);
+      turn({ tag: "Answers", what: "Writes the answer from what it was allowed to read", sig });
     }
   } else if (ev.type === "done") {
-    if (ev.chain) {
-      await S.drop($("#ledger-agent"));
-      addLedger("#ledger-agent", `${ev.blocked}/${ev.decisions}`, ev.chain.url, "Sealed session on NEAR: blocked / decisions");
-    }
+    if (ev.chain) addLedger("#ledger-agent", `${ev.blocked}/${ev.decisions}`, ev.chain.url, "Sealed session on NEAR: refused / reads");
     const a = $("#answer");
     a.hidden = false;
     a.innerHTML = `<h3>Answer</h3><p>${esc(ev.answer)}</p>
-      <div class="proof"><span>${ev.decisions} decision${ev.decisions === 1 ? "" : "s"}, ${ev.blocked} blocked. Log root <span class="mono">${short(ev.log_root)}</span></span>
-      ${ev.chain ? `<a href="${esc(ev.chain.url)}" target="_blank" rel="noopener">Sealed by ${esc(config.agent.account)} on NEAR</a>` : ""}
+      <div class="links"><span>${plural(ev.decisions, "read")}, ${ev.blocked} refused</span>
+      <span>Log root <span class="mono ink">${short(ev.log_root)}</span></span>
+      ${ev.chain ? `<a href="${esc(ev.chain.url)}" target="_blank" rel="noopener">Sealed on NEAR by the agent</a>` : `<span class="error">Not sealed on NEAR</span>`}
       <a href="#" id="verify-session">Verify the session</a></div>`;
-    const sid = $("#turns [data-session]").dataset.session;
-    $("#verify-session").addEventListener("click", (e) => { e.preventDefault(); $("#kind").value = "session"; $("#ref").value = sid; switchTab("verify"); $("#lookup").requestSubmit(); });
+    $("#verify-session").addEventListener("click", (e) => { e.preventDefault(); $("#kind").value = "session"; syncRefLabel(); $("#ref").value = sessionId; switchTab("verify"); $("#lookup").requestSubmit(); });
   } else if (ev.type === "error") {
-    turns.insertAdjacentHTML("beforeend", `<li class="block"><span class="what">Stopped</span><span class="said">${esc(ev.message)}</span></li>`);
+    turn({ cls: "block", tag: "Stopped", what: esc(ev.message) });
   }
 }
 
 /* ---------- verify ---------- */
 
+const TICK = `<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#1C6B45"/><path d="M5.2 9.2l2.6 2.6 5-5.2" fill="none" stroke="#fff" stroke-width="1.8"/></svg>`;
+const CROSS = `<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="8" fill="#B42318"/><path d="M6 6l6 6M12 6l-6 6" fill="none" stroke="#fff" stroke-width="1.8"/></svg>`;
+
+function syncRefLabel() {
+  const check = $("#kind").value === "check";
+  $("#ref-label").textContent = check ? "Check number" : "Session id";
+  $("#ref").placeholder = check ? "0" : "3edd3560df214b56";
+}
+$("#kind").addEventListener("change", syncRefLabel);
+
 $("#lookup").addEventListener("submit", async (e) => {
   e.preventDefault();
   const kind = $("#kind").value, ref = $("#ref").value.trim();
   const out = $("#verify-out");
-  if (!ref) { out.innerHTML = `<p class="hint error">Enter a ${kind === "check" ? "check number" : "session id"}.</p>`; return; }
-  out.innerHTML = `<p class="hint">Reading NEAR and replaying the proofs…</p>`;
+  if (!ref) { out.innerHTML = `<p class="panel state error">Enter a ${kind === "check" ? "check number" : "session id"}.</p>`; return; }
+  out.innerHTML = `<p class="panel state">Reading NEAR and replaying the proofs…</p>`;
   let body;
   try { body = await api(kind === "check" ? `/api/check/${encodeURIComponent(ref)}/verify` : `/api/session/${encodeURIComponent(ref)}/verify`); }
-  catch (err) { out.innerHTML = `<p class="hint error">${esc(err.message)}</p>`; return; }
+  catch (err) { out.innerHTML = `<p class="panel state error">${esc(err.message)}</p>`; return; }
   const rec = body.record, m = (h) => `<span class="mono">${esc(h)}</span>`;
   const rows = kind === "check"
-    ? [["Incoming firm", m(rec.incoming.firm)], ["Existing firm", m(rec.existing.firm)], ["Conflicts", rec.conflicts_found],
-       ["Exact matches", rec.exact_matches], ["Cut off", rec.truncated ? "yes" : "no"], ["Enclave calls", rec.calls],
-       ["Incoming list", m(rec.incoming.commitment)], ["Existing list", m(rec.existing.commitment)],
+    ? [["Incoming firm", m(rec.incoming.firm)], ["Receiving firm", m(rec.existing.firm)],
+       ["Conflicts", `${rec.conflicts_found}, of which ${plural(rec.exact_matches, "exact match", "exact matches")}`],
+       ["Enclave calls", `${rec.calls}, ${rec.truncated ? "some cut off" : "none cut off"}`],
+       ["Incoming list", m(rec.incoming.commitment)], ["Receiving list", m(rec.existing.commitment)],
        ["Verdict hash", m(rec.verdict_hash)], ["Model", m(rec.engine.model)], ["Model key", m(rec.engine.model_key)],
        ["Instructions", m(rec.engine.instructions_hash)], ["Recorded by", m(rec.recorded_by)],
-       ["Proof bundle", `<a href="/api/check/${esc(rec.id)}/bundle" download>download</a>`]]
-    : [["Agent", m(rec.agent)], ["Member", `${esc(body.member?.name || "")} ${m(rec.member)}`], ["Firm", m(rec.firm)], ["Decisions", rec.decisions], ["Blocked", rec.blocked],
+       ["Proof bundle", `<a href="/api/check/${esc(rec.id)}/bundle" download>Download sealroom-check-${esc(rec.id)}.json</a>`]]
+    : [["Agent", m(rec.agent)], ["Member", `${esc(body.member?.name || "")} ${m(rec.member)}`], ["Firm", m(rec.firm)],
+       ["Reads", rec.decisions], ["Refused", rec.blocked],
        ["Log root", m(rec.log_root)], ["Policy", m(rec.policy_hash)], ["Question", m(rec.question_hash)]];
-  out.innerHTML = body.steps.map((s) => `<div class="vstep ${s.ok ? "ok" : "bad"}">${esc(s.text)}</div>`).join("")
-    + `<dl class="record">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${typeof v === "string" && v.startsWith("<") ? v : esc(v)}</dd>`).join("")}</dl>`;
+  const passed = body.steps.filter((s) => s.ok).length, all = passed === body.steps.length;
+  const what = kind === "check" ? `Check #${esc(ref)}` : `Session ${esc(ref)}`;
+  out.innerHTML = `<div class="results">
+    <section class="panel checks">
+      <div class="results-head"><h2>${what} ${all ? "holds up" : "does not hold up"}</h2>
+        <span class="${all ? "ok" : "bad"}">${passed} of ${body.steps.length} checks passed</span></div>
+      <ul class="vsteps">${body.steps.map((s) => `<li class="${s.ok ? "ok" : "bad"}">${s.ok ? TICK : CROSS}<span>${esc(s.text)}</span></li>`).join("")}</ul>
+    </section>
+    <section class="panel record-card">
+      <h2>The record on NEAR</h2>
+      <dl class="record">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${typeof v === "string" && v.startsWith("<") ? v : esc(v)}</dd>`).join("")}</dl>
+    </section>
+  </div>`;
 });
 
 /* ---------- tabs, boot ---------- */
 
 function switchTab(name) {
-  if (stage) stage.anchor(name === "check" ? $("#stage-check") : name === "agent" ? $("#stage-agent") : null, { wall: name === "agent" });
   $$(".tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
   $$(".tab").forEach((t) => (t.hidden = t.id !== `tab-${name}`));
 }
 $$(".tabs button").forEach((b) => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 $("#enclave").addEventListener("click", () => attest(true));
 
-if (stage) stage.anchor($("#stage-check"));
 config = await api("/api/config");
 $("#contract-link").textContent = config.contract;
 $("#contract-link").href = `${config.explorer}/address/${config.contract}`;
@@ -475,7 +535,7 @@ setupFirm("existing", "firm_existing.csv");
 step("identity", "busy");
 loadFirmIdentity("incoming");
 loadFirmIdentity("existing");
-$("#person").innerHTML = config.members.map((m) => `<option value="${esc(m.account)}">${esc(m.name)} (${esc(m.account.split(".")[0])})</option>`).join("");
+$("#person").innerHTML = config.members.map((m) => `<option value="${esc(m.account)}">${esc(m.name)}</option>`).join("");
 $("#person").addEventListener("change", renderMember);
 renderMember();
 renderAgentIdentity();
