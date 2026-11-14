@@ -107,8 +107,8 @@ uv run pytest -q
 uv run sealroom whoami research.sr-firm-south-64716.testnet
 # Inspect the registered agent, owner, model and prompt hash.
 
-uv run sealroom verify 10
-# Read an existing check from testnet; this alone is not a full bundle replay.
+uv run sealroom verify 10 --bundle ../docs/evidence/bundle-10.json
+# Full replay of the committed check #10 against its record on testnet.
 
 uv run sealroom attest
 # Live Intel quote, nonce/key binding, RTMR replay and NVIDIA NRAS checks.
@@ -117,27 +117,29 @@ uv run sealroom attest
 
 ### Evidence snapshot
 
-Reviewed against source commit `988c3fd` on 2026-11-14:
+Evidence for a live check is committed as plain text under [`docs/evidence/`](docs/evidence/README.md), so it can be checked without rerunning it:
 
-- **34 Python tests passed locally**, including the browser crypto interoperability test. Rerunning that test separately does not add another test to the count.
-- **All three labelled datasets passed structural validation.** This checks the datasets, not the model's matching accuracy.
-- **11 stored check records** (IDs 0-10) were returned by a public testnet read on 2026-11-14. Stored records are distinct from a fresh end-to-end run or a replay of their proof bundles.
-- **Live attestation was verified during the earlier review that day**, including Intel TDX, RTMR0-3 replay and NVIDIA NRAS. Run `sealroom attest` to check the current environment.
-- **13 Rust contract tests passed** with `cargo test`.
-- **Hosted CI passed** on GitHub Actions for this commit: the Python suite with browser interoperability, and dataset validation.
+- **Live attestation** ([`attest.txt`](docs/evidence/attest.txt)): dcap-qvl verified the Intel TDX quote, `report_data` binds the model key and our fresh nonce, the event log replays to RTMR0-3, and NVIDIA NRAS passed the GPUs.
+- **A live check recorded on testnet** ([`tx-check-10.txt`](docs/evidence/tx-check-10.txt)): encrypted inference on NEAR AI Cloud, recorded as check #10 on 2026-11-14 in transaction [`Hxct7d9z…`](https://testnet.nearblocks.io/txns/Hxct7d9zMuc5uV7PVs1Hfc6cUZpaeZrJi8McrJLkPJ6P). The contract verified both firm signatures and the TEE signature in that call.
+- **Full replay of that check** ([`verify-10.txt`](docs/evidence/verify-10.txt), bundle [`bundle-10.json`](docs/evidence/bundle-10.json)): hardware re-verified, every call rebuilt byte for byte, the verdict re-derived, and the on-chain record matches. Rerun it with `uv run sealroom verify 10 --bundle ../docs/evidence/bundle-10.json`.
+- **38 Python tests passed** ([`pytest.txt`](docs/evidence/pytest.txt)), including browser crypto interoperability.
+- **16 Rust contract tests passed** ([`cargo-test.txt`](docs/evidence/cargo-test.txt)).
+- **All three labelled datasets passed structural validation** (`python3 eval/check_dataset.py`). This checks the datasets, not the model's matching accuracy.
+
+The evidence covers the conflict-check path only, with one machine playing both firms; no agent session was run for it. Hosted CI last passed on GitHub Actions for commit `988c3fd`.
 
 ## What you can check yourself
 
 | Claim | Where it is checked | Scope |
 |---|---|---|
-| An organization signed its submission | NEAR contract | Its registered ed25519 key signs the list commitment, ciphertext hash, blinded-set hash, counterparty and one-time check reference. This authenticates the submission, not the truth of its contents. |
+| An organization signed its submission | NEAR contract | Its registered ed25519 key signs the list commitment, ciphertext hash, blinded-set hash, counterparty and one-time check reference. This authenticates the submission, not the truth of its contents. Live: [tx-check-10.txt](docs/evidence/tx-check-10.txt). |
 | Exact overlaps can be recomputed | Signed PSI transcript | DH over the Ed25519 prime-order group matches normalized names and aliases under the semi-honest assumption. |
-| Model and gateway keys are bound to TDX evidence | Attestation verifier | Intel quote verification checks the signing identity, fresh nonce and debug mode. The contract does not independently verify Intel quotes. |
-| The reported compose is bound to the quote | Attestation verifier | Event logs replay to RTMR0-3; the measured compose hash must match the supplied compose. This does not establish a reviewed application allowlist. |
-| GPU evidence passes NVIDIA's appraisal | Attestation verifier | NRAS tokens are checked using NVIDIA's published keys, with overall and per-GPU results and nonce checks. GPU evidence is not hash-bound to the CPU quote. |
-| Signed calls used the submitted ciphertexts and disclosed instructions | Proof-bundle verifier | Requests are rebuilt byte for byte and checked against signed request/response hashes. This does not prove that a party encrypted truthful or complete source records. |
-| The verdict follows from the signed replies and exact-match transcript | Proof-bundle verifier | Responses are decrypted, validated and merged again; the derived verdict is compared with the recorded hash. This is not proof that every suggested relationship is correct. |
-| Submitted inference signatures are valid | NEAR contract | Up to 48 call signatures are checked against the model/gateway keys declared in the record. Off-chain attestation establishes whether those keys belong to a genuine enclave. |
+| Model and gateway keys are bound to TDX evidence | Attestation verifier | Intel quote verification checks the signing identity, fresh nonce and debug mode. The contract does not independently verify Intel quotes. Live: [attest.txt](docs/evidence/attest.txt). |
+| The reported compose is bound to the quote | Attestation verifier | Event logs replay to RTMR0-3; the measured compose hash must match the supplied compose. This does not establish a reviewed application allowlist. Live: [attest.txt](docs/evidence/attest.txt). |
+| GPU evidence passes NVIDIA's appraisal | Attestation verifier | NRAS tokens are checked using NVIDIA's published keys, with overall and per-GPU results and nonce checks. GPU evidence is not hash-bound to the CPU quote. Live: [attest.txt](docs/evidence/attest.txt). |
+| Signed calls used the submitted ciphertexts and disclosed instructions | Proof-bundle verifier | Requests are rebuilt byte for byte and checked against signed request/response hashes. This does not prove that a party encrypted truthful or complete source records. Live: [verify-10.txt](docs/evidence/verify-10.txt). |
+| The verdict follows from the signed replies and exact-match transcript | Proof-bundle verifier | Responses are decrypted, validated and merged again; the derived verdict is compared with the recorded hash. This is not proof that every suggested relationship is correct. Live: [verify-10.txt](docs/evidence/verify-10.txt). |
+| Submitted inference signatures are valid | NEAR contract | Up to 48 call signatures are checked against the model/gateway keys declared in the record. Off-chain attestation establishes whether those keys belong to a genuine enclave. Live: [tx-check-10.txt](docs/evidence/tx-check-10.txt). |
 | Full record names need not reach the matching relay | Browser encryption and numbered model output | Inputs are encrypted to the model key. Later signed disclosure reveals matched names to the application and reviewing parties. |
 | A member authorized a session | NEAR contract | The member signs the agent, session, question hash and policy hash. |
 | Declared session configuration matches the agent registry | Application and NEAR contract | The application checks its running configuration; the contract compares the submitted model and prompt hash with registered values. The contract cannot inspect actual off-chain execution. |

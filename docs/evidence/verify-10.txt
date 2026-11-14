@@ -1,0 +1,43 @@
+$ uv run sealroom verify 10 --bundle ../docs/evidence/bundle-10.json
+✓ check #10 on v2.sealroom-64716.testnet: both firm signatures and 1 TEE signature(s) were verified by the contract when it was recorded
+✓ Intel signed the TDX quotes, the event logs replay to RTMR3, NVIDIA passed the GPUs, and the quotes bind the model and gateway keys used here
+✓ Both firms signed their sealed lists with their registered keys (sr-firm-north-64716.testnet, sr-firm-south-64716.testnet)
+✓ The exact-match transcript is signed by both firms and yields 1 exact match(es)
+✓ All 1 enclave calls rebuilt byte for byte; every TEE signature checks out
+✓ The verdict re-derives exactly from the signed responses (5 pair(s))
+✓ Every chunk pair was checked (1×1)
+✓ The record on NEAR matches this bundle: same lists, same calls, same verdict hash
+{
+  "id": 10,
+  "check_ref": "e25ea2563c08170aa654374b14fdfc02",
+  "incoming": {
+    "firm": "sr-firm-north-64716.testnet",
+    "commitment": "bbaf3ffba80bcefc6c5f395de0e4ae96c5b0bf717e50d914a19f50b6e611bcba",
+    "ciphertext_hash": "5d9d7ef2027b6a03d556156faa39dfc661db2bd68ce6571ca206279beee2c121",
+    "psi_hash": "7d6658a7e98d431b5da87f27b331cbeb3f694b1fd0f041e1954963b944a97004",
+    "signature": "481dc3563b24559a5cd4947de7e245ccff1aff813e24eb49f0087b8a9d7efcb165bb40077d76a2c868442354a34e870cf62d560a94655555b9f5377a7137a50b"
+  },
+  "existing": {
+    "firm": "sr-firm-south-64716.testnet",
+    "commitment": "d80dc938ea117e1ad67fa6add113972bd8db427f63e6b4d7255ceceda77b6f87",
+    "ciphertext_hash": "51fc56c3ae2790a3c75076cddeca655136badd79f732738b150bbdddc678d480",
+    "psi_hash": "89dae9f21245e3f8580fab3357c8c3923e5a6f275e10f3d7506dc30df085477a",
+    "signature": "70d544f4ae38c46fa648bc384640fe17df76c033c902d3006113d286ec2b6ae672984734368022f99c18af744301749e6d3a4fe82cd8bae8d9d9299dde2e5509"
+  },
+  "verdict_hash": "413a504b283bbac8a3fd5f280d09e7b2063dbd85c92cb7d076703de79f8bbed3",
+  "conflicts_found": 5,
+  "exact_matches": 1,
+  "truncated": false,
+  "engine": {
+    "model": "z-ai/glm-5.3-flash",
+    "model_key": "5a0210f2442c79355784f9de021985429561da5bacc3a4424b01ac52b7e0caff",
+    "gateway_key": "40599fb284f43953bb356b09080fd803c960fc10285ad90eca462ca711ad4acb",
+    "report_hash": "862d6eb594a56ed36d0bd7958443cfa6db21edcd93878c0079e07072503efda2",
+    "instructions_hash": "408fff6eb409c97b23036fa456ac55477d703b2617af9fd79f759f9d3e5f1a7a"
+  },
+  "calls": 1,
+  "calls_root": "167e1f79b6933e7b5b28877e31bdc16b45321d8bc0fbbc225b7fc38855577e9f",
+  "recorded_by": "sealroom-64716.testnet",
+  "recorded_at_ns": 1794676874944979620
+}
+exit 0

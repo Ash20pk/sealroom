@@ -1,0 +1,32 @@
+$ cargo test
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.62s
+warning: the following packages contain code that will be rejected by a future version of Rust: wasmparser v0.78.2
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+     Running unittests src/lib.rs (target/debug/deps/sealroom-23a3bf8c6bb4bb45)
+
+running 16 tests
+test tests::check_ref_used_once - should panic ... ok
+test tests::envelope_cannot_be_replayed_against_another_firm - should panic ... ok
+test tests::forged_firm_signature_rejected - should panic ... ok
+test tests::only_the_agent_can_seal - should panic ... ok
+test tests::agent_seals_a_member_authorised_session ... ok
+test tests::agent_pinned_to_its_prompt - should panic ... ok
+test tests::records_a_check_signed_by_both_firms_and_the_tee ... ok
+test tests::firm_cannot_take_over_another_firms_member - should panic ... ok
+test tests::more_calls_than_the_cap_rejected - should panic ... ok
+test tests::complete_check_is_recorded_as_not_truncated ... ok
+test tests::session_needs_the_members_signature - should panic ... ok
+test tests::session_seals_once - should panic ... ok
+test tests::unattested_signer_rejected - should panic ... ok
+test tests::revoked_agent_cannot_seal - should panic ... ok
+test tests::tampered_call_rejected - should panic ... ok
+test tests::truncated_check_at_the_call_cap_is_recorded_as_truncated ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+   Doc-tests sealroom
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

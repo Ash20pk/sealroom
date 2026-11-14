@@ -1,0 +1,21 @@
+$ uv run sealroom attest
+✓ Intel TDX quote verified for gateway and z-ai/glm-5.3-flash (TCB UpToDate)
+✓ quote binds the model's encryption/signing key and our fresh nonce; debug mode off
+✓ event log replays to RTMR0-3; app compose bound for 3 model instance(s)
+✓ NVIDIA NRAS: GPU attestation verified
+(18.3s)
+{
+  "model": "z-ai/glm-5.3-flash",
+  "signing_key": "5a0210f2442c79355784f9de021985429561da5bacc3a4424b01ac52b7e0caff",
+  "gateway_key": "40599fb284f43953bb356b09080fd803c960fc10285ad90eca462ca711ad4acb",
+  "nonce": "8d0de6e8a0ae377d029b205ab70e4040c66eb0987a9e5dd454c97a1782080f26",
+  "tcb_status": "UpToDate",
+  "report_sha256": "30ceb8d0b2f1a649ebf7606827249655c75e66bf2cf7bbfdbfff76ddcef58342",
+  "compose_hashes": [
+    "a7de0bba194b6466c5c7b8dcfb907b6b60404ab2ba6de8b5d0cf63c2145d6868",
+    "c900dc7304663b73b623cd5d941fbdab6f02858017b371ae28de445a16d2e2d0",
+    "e8416a02d6f7ce47baaa52e3925b934fd30834b04fc9086b363db9b1d12c729d"
+  ],
+  "gpu_status": "verified"
+}
+exit 0

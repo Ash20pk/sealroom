@@ -1,0 +1,49 @@
+$ uv run pytest -v
+============================= test session starts ==============================
+platform darwin -- Python 3.12.12, pytest-9.2.0, pluggy-1.7.0 -- /Volumes/Dev/Projects/sealroom/app/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Volumes/Dev/Projects/sealroom/app
+configfile: pyproject.toml
+plugins: anyio-4.16.0
+collecting ... collected 38 items
+
+tests/test_agent.py::test_every_refusal_reads_the_same_and_the_log_chains PASSED [  2%]
+tests/test_attest.py::test_event_log_replays_to_quote_rtmrs PASSED       [  5%]
+tests/test_attest.py::test_tampered_rtmr3_event_is_caught PASSED         [  7%]
+tests/test_attest.py::test_app_compose_must_match_compose_hash PASSED    [ 10%]
+tests/test_attest.py::test_info_block_must_match_rtmr3 PASSED            [ 13%]
+tests/test_attest.py::test_gpu_check_passes_on_signed_nras_answer PASSED [ 15%]
+tests/test_attest.py::test_gpu_evidence_for_another_nonce_is_refused PASSED [ 18%]
+tests/test_attest.py::test_nras_token_from_unknown_key_is_refused PASSED [ 21%]
+tests/test_attest.py::test_failed_gpu_is_refused PASSED                  [ 23%]
+tests/test_attest.py::test_missing_gpu_token_is_refused PASSED           [ 26%]
+tests/test_core.py::test_two_parties_encrypt_independently_to_model PASSED [ 28%]
+tests/test_core.py::test_response_only_readable_by_reader_key PASSED     [ 31%]
+tests/test_core.py::test_commitment_depends_on_salt_and_list PASSED      [ 34%]
+tests/test_core.py::test_disclosed_encryption_reproduces_ciphertext PASSED [ 36%]
+tests/test_engine.py::test_normalise_vectors PASSED                      [ 39%]
+tests/test_engine.py::test_psi_finds_exact_and_alias_matches_only PASSED [ 42%]
+tests/test_engine.py::test_verdict_merges_tiers_and_drops_invalid_model_output PASSED [ 44%]
+tests/test_engine.py::test_bundle_replays PASSED                         [ 47%]
+tests/test_engine.py::test_bundle_detects_tampering[verdict] PASSED      [ 50%]
+tests/test_engine.py::test_bundle_detects_tampering[response] PASSED     [ 52%]
+tests/test_engine.py::test_bundle_detects_tampering[instructions] PASSED [ 55%]
+tests/test_engine.py::test_bundle_detects_tampering[envelope] PASSED     [ 57%]
+tests/test_engine.py::test_bundle_detects_tampering[psi] PASSED          [ 60%]
+tests/test_engine.py::test_bundle_detects_tampering[firm_key] PASSED     [ 63%]
+tests/test_engine.py::test_bundle_detects_tampering[drop_call] PASSED    [ 65%]
+tests/test_engine.py::test_full_replies_are_continued_and_truncation_is_derived PASSED [ 68%]
+tests/test_engine.py::test_named_verdict_requires_signed_disclosures PASSED [ 71%]
+tests/test_engine.py::test_envelope_signature_binds_check_and_counterparty PASSED [ 73%]
+tests/test_engine.py::test_model_sees_numbers_and_data_only PASSED       [ 76%]
+tests/test_eval.py::test_verified_run_is_scored PASSED                   [ 78%]
+tests/test_eval.py::test_failed_replay_reports_no_score[verdict] PASSED  [ 81%]
+tests/test_eval.py::test_failed_replay_reports_no_score[response] PASSED [ 84%]
+tests/test_interop.py::test_browser_and_python_agree PASSED              [ 86%]
+tests/test_room.py::test_screen_blocks_person PASSED                     [ 89%]
+tests/test_room.py::test_wall_closes_other_side_after_exposure PASSED    [ 92%]
+tests/test_room.py::test_unlabelled_refused_and_refused_reads_do_not_expose PASSED [ 94%]
+tests/test_room.py::test_log_chain_detects_tampering PASSED              [ 97%]
+tests/test_room.py::test_policy_from_verdict PASSED                      [100%]
+
+============================== 38 passed in 7.75s ==============================

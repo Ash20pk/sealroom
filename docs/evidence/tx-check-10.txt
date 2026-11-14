@@ -1,0 +1,15 @@
+$ curl -s https://archival-rpc.testnet.near.org -d {"method":"tx","params":{"tx_hash":"Hxct7d9zMuc5uV7PVs1Hfc6cUZpaeZrJi8McrJLkPJ6P","sender_account_id":"sealroom-64716.testnet","wait_until":"FINAL"}}
+{
+  "tx_hash": "Hxct7d9zMuc5uV7PVs1Hfc6cUZpaeZrJi8McrJLkPJ6P",
+  "signer": "sealroom-64716.testnet",
+  "receiver": "v2.sealroom-64716.testnet",
+  "method": "record_check",
+  "block_hash": "89cvCtqZQRiKyvVKa7WQ8c6JiXsNs9buX53gHUsYDsoZ",
+  "status": {
+    "SuccessValue": "MTA="
+  },
+  "logs": [
+    "EVENT_JSON:{\"standard\":\"sealroom\",\"version\":\"2.0.0\",\"event\":\"check_recorded\",\"data\":{\"id\":10,\"conflicts\":5}}"
+  ],
+  "explorer": "https://testnet.nearblocks.io/txns/Hxct7d9zMuc5uV7PVs1Hfc6cUZpaeZrJi8McrJLkPJ6P"
+}
