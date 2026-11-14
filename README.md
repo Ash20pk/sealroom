@@ -13,6 +13,20 @@ The working prototype demonstrates this through conflict checks between law firm
 
 Built at [NEAR HACKATHON](https://nearhackathon.com) for the **Privacy & Private AI**, **AI Security & Defense**, **Open Innovation**, and **Agent Economy** tracks.
 
+## What's new here
+
+Two mechanisms we haven't seen elsewhere, each pointed at the code that does it and the test that checks it.
+
+**1. Every access decision an agent gets is hash-chained, and the chain is sealed on NEAR under a key that can do nothing else.**
+Each document read is decided before any content reaches the model, and every decision, allowed or refused, is folded into a SHA-256 chain ([`room.py` L29-30](app/src/sealroom/room.py#L29), [`Session.decide` L85-102](app/src/sealroom/room.py#L85)). At the end, the agent seals the chain's head from its own NEAR account ([`server.py` L382](app/src/sealroom/server.py#L382)). That account's only key is a function-call key limited to `seal_session` on our contract ([`setup.py` L91-100](app/src/sealroom/setup.py#L91)), so a leaked agent key can seal logs and nothing more. The contract only accepts the seal if the member signed this session, question and policy, and if the agent declares the model and prompt hash it was registered with ([`lib.rs` L401-416](contract/src/lib.rs#L401)). Anyone can recompute the chain from an exported log and compare it to the sealed root (`sealroom verify-session`, [`cli.py` L206-213](app/src/sealroom/cli.py#L206)).
+Tests: `test_log_chain_detects_tampering` ([`test_room.py`](app/tests/test_room.py)), `agent_seals_a_member_authorised_session`, `session_needs_the_members_signature`, `agent_pinned_to_its_prompt`, `revoked_agent_cannot_seal`, `session_seals_once` ([`lib.rs` tests](contract/src/lib.rs)).
+
+**2. Refusals are fixed text, so the agent can't probe what the firm is hiding.**
+Whatever the reason (a screen from a conflicting client, an ethical wall closing after the session saw the other side, unlabelled material, or an ID that doesn't exist), the model gets the same byte-identical reply ([`room.py` L25](app/src/sealroom/room.py#L25), [`agent.py` L83-86](app/src/sealroom/agent.py#L83)). The specific reason goes only into the reviewer's log. So a prompt-injected agent can't map out which clients the firm acts for by watching how it gets refused, and a refused read never counts as "seen" for wall purposes ([`room.py` L100-101](app/src/sealroom/room.py#L100)).
+Test: [`test_agent.py`](app/tests/test_agent.py) drives the agent through all four refusal kinds and checks the model received identical text each time, with no refused content, and that the log chains to the sealed root.
+
+What this doesn't cover: the server enforcing the rules and holding the documents is trusted, and the fixed refusal hides the reason, not the fact that a read was refused. See [Limits](#limits).
+
 ## The user flow
 
 1. Each organization prepares its records in its own browser.
@@ -88,7 +102,7 @@ cd sealroom
 cd app
 uv sync
 uv run pytest -q
-# Expected on this reviewed code: 37 passed, including browser interoperability.
+# Expected on this reviewed code: 38 passed, including browser interoperability.
 
 uv run sealroom whoami research.sr-firm-south-64716.testnet
 # Inspect the registered agent, owner, model and prompt hash.
@@ -195,7 +209,7 @@ uv sync
 uv run pytest -q
 ```
 
-With the browser dependencies installed, the reviewed code returns **37 passed**. Without Node or the interop dependencies, that test can be skipped (36 passed, 1 skipped). The engine tests run the full pipeline against a fake TEE that decrypts and signs the way NEAR AI does. They check the proof bundle catches seven kinds of tampering: verdict, response, instructions, envelope, exact-match transcript, firm key and a dropped call. The attestation tests replay a real NEAR AI Cloud event log and check that a tampered RTMR3 event, app compose or info block is caught, and that NRAS tokens with the wrong key, wrong nonce, a failed GPU or a missing GPU are refused.
+With the browser dependencies installed, the reviewed code returns **38 passed**. Without Node or the interop dependencies, that test can be skipped (37 passed, 1 skipped). The engine tests run the full pipeline against a fake TEE that decrypts and signs the way NEAR AI does. They check the proof bundle catches seven kinds of tampering: verdict, response, instructions, envelope, exact-match transcript, firm key and a dropped call. The attestation tests replay a real NEAR AI Cloud event log and check that a tampered RTMR3 event, app compose or info block is caught, and that NRAS tokens with the wrong key, wrong nonce, a failed GPU or a missing GPU are refused.
 
 ```bash
 # From the repository root, run each command separately:
