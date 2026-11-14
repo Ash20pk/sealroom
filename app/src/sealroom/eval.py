@@ -4,7 +4,8 @@ Runs exactly what production runs (sealing, signed envelopes, exact tier by
 PSI, every chunk pair through the attested model, proof bundle) with throwaway
 firm identities and no chain writes, then scores the named verdict against
 truth.json. Each run's proof bundle is replayed too, so a score is only
-reported for a verdict that verifies.
+reported for a verdict that verifies; a run whose bundle fails replay
+reports the failed steps and no precision or recall.
 """
 
 from __future__ import annotations
@@ -60,11 +61,30 @@ def evaluate(case: Path, model_name: str, runs: int = 1, log=print) -> dict:
         b = Identity.generate("eval-existing.testnet", "firm", "B")
         t = time.time()
         r = local_check(inc, ext, a, b, model, contract="eval.local", log=lambda s: log("  " + s))
-        rep = bundle.verify(r["bundle"], check_attestation=False)
-        s = _score(r["named"], truth)
-        s.update(run=n, seconds=round(time.time() - t, 1), calls=r["bundle"]["verdict"]["calls"],
-                 truncated=r["bundle"]["verdict"]["truncated"], bundle_verifies=rep.passed)
-        log(f"  run {n}: precision {s['precision']}, recall {s['recall']} ({s['true_positives']}/{s['truth']}), "
-            f"{len(s['false_positives'])} false positive(s), bundle {'verifies' if rep.passed else 'FAILS'}")
-        out.append(s)
-    return {"case": case.name, "model": model.model, "engine": conflict.ENGINE, "runs": out}
+        out.append(_run_result(n, r, truth, round(time.time() - t, 1), log))
+    failed = [x["run"] for x in out if not x["verified"]]
+    return {"case": case.name, "model": model.model, "engine": conflict.ENGINE, "verified": not failed,
+            "unverified_runs": failed, "runs": out}
+
+
+def _run_result(n: int, r: dict, truth: dict, seconds: float, log=print) -> dict:
+    """Score one run, but only if its proof bundle replays.
+
+    The model's attestation was checked live by verify_model before the run, so
+    the replay skips re-fetching hardware collateral; everything else (envelope
+    signatures, rebuilt requests, TEE signatures, exact-tier transcript, derived
+    verdict hash, full chunk-pair coverage) is checked. A run whose bundle fails,
+    including a truncated one, gets no score at all, only the replay steps that
+    failed.
+    """
+    rep = bundle.verify(r["bundle"], check_attestation=False)
+    if not rep.passed:
+        failures = [s["text"] for s in rep.steps if not s["ok"]]
+        log(f"  run {n}: proof bundle FAILS replay, no score reported ({len(failures)} failed step(s))")
+        return {"run": n, "verified": False, "seconds": seconds, "replay_failures": failures}
+    s = _score(r["named"], truth)
+    s.update(run=n, verified=True, seconds=seconds, calls=r["bundle"]["verdict"]["calls"],
+             truncated=r["bundle"]["verdict"]["truncated"])
+    log(f"  run {n}: precision {s['precision']}, recall {s['recall']} ({s['true_positives']}/{s['truth']}), "
+        f"{len(s['false_positives'])} false positive(s), bundle verifies")
+    return s

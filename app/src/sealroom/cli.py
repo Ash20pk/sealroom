@@ -227,6 +227,9 @@ def cmd_eval(a) -> None:
     print(json.dumps(res, indent=2))
     if a.out:
         Path(a.out).write_text(json.dumps(res, indent=2))
+    if not res["verified"]:
+        _p(f"✗ run(s) {res['unverified_runs']} did not replay; they carry no score")
+        sys.exit(1)
 
 
 def main(argv=None) -> None:

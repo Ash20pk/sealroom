@@ -88,7 +88,7 @@ cd sealroom
 cd app
 uv sync
 uv run pytest -q
-# Expected on this reviewed code: 34 passed, including browser interoperability.
+# Expected on this reviewed code: 37 passed, including browser interoperability.
 
 uv run sealroom whoami research.sr-firm-south-64716.testnet
 # Inspect the registered agent, owner, model and prompt hash.
@@ -195,7 +195,7 @@ uv sync
 uv run pytest -q
 ```
 
-With the browser dependencies installed, the reviewed code returns **34 passed**. Without Node or the interop dependencies, that test can be skipped (33 passed, 1 skipped). The engine tests run the full pipeline against a fake TEE that decrypts and signs the way NEAR AI does. They check the proof bundle catches seven kinds of tampering: verdict, response, instructions, envelope, exact-match transcript, firm key and a dropped call. The attestation tests replay a real NEAR AI Cloud event log and check that a tampered RTMR3 event, app compose or info block is caught, and that NRAS tokens with the wrong key, wrong nonce, a failed GPU or a missing GPU are refused.
+With the browser dependencies installed, the reviewed code returns **37 passed**. Without Node or the interop dependencies, that test can be skipped (36 passed, 1 skipped). The engine tests run the full pipeline against a fake TEE that decrypts and signs the way NEAR AI does. They check the proof bundle catches seven kinds of tampering: verdict, response, instructions, envelope, exact-match transcript, firm key and a dropped call. The attestation tests replay a real NEAR AI Cloud event log and check that a tampered RTMR3 event, app compose or info block is caught, and that NRAS tokens with the wrong key, wrong nonce, a failed GPU or a missing GPU are refused.
 
 ```bash
 # From the repository root, run each command separately:
@@ -257,7 +257,7 @@ uv run sealroom eval ../eval/small
 uv run sealroom --model deepseek-ai/DeepSeek-V4.1-Flash-1017 eval ../eval/hard
 ```
 
-Every eval run also replays its own proof bundle, so a score is only reported for a verdict that verifies. Dataset validation alone is not a precision/recall result. Running these model evaluations consumes NEAR AI Cloud credit.
+Every eval run replays its own proof bundle before it is scored ([`eval.py` `_run_result`](app/src/sealroom/eval.py#L70)). A run whose bundle fails replay, including a truncated one, reports the failed steps and no precision or recall, and `sealroom eval` exits non-zero ([`cli.py` `cmd_eval`](app/src/sealroom/cli.py#L223)). [`tests/test_eval.py`](app/tests/test_eval.py) tampers with the verdict and with a signed response and checks that neither run carries a score. The replay skips re-fetching hardware collateral because the model's attestation is verified live at the start of the eval. Dataset validation alone is not a precision/recall result. Running these model evaluations consumes NEAR AI Cloud credit.
 
 ### Host the web demo (free)
 
