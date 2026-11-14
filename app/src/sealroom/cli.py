@@ -52,6 +52,8 @@ def cmd_attest(a) -> None:
     m = verify_model(a.model)
     _p(f"✓ Intel TDX quote verified for gateway and {m.model} (TCB {m.tcb_status})")
     _p("✓ quote binds the model's encryption/signing key and our fresh nonce; debug mode off")
+    _p(f"✓ event log replays to RTMR0-3; app compose bound for {len(m.compose_hashes)} model instance(s)")
+    _p(f"✓ NVIDIA NRAS: GPU attestation {m.gpu_status}")
     print(json.dumps(m.to_json(), indent=2))
 
 

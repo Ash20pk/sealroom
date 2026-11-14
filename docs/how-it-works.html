@@ -251,7 +251,7 @@
 
   <tr class="group"><td colspan="3">NEAR AI Cloud: the sealed room</td></tr>
   <tr><td>Private inference in a TEE</td><td>Runs the conflict model on lists nobody else can read</td><td><code>z-ai/glm-5.3-flash</code> on NEAR AI Cloud, inside an Intel TDX confidential VM with GPU TEE</td></tr>
-  <tr><td>Attestation API</td><td>Proves the model runs in a genuine, non-debug enclave before any list is sent</td><td><code>/v1/attestation/report</code> with a fresh nonce; quote checked against Intel PCS with <code>dcap-qvl</code>; the model key and nonce must be bound in the quote (<code>attest.py</code>)</td></tr>
+  <tr><td>Attestation API</td><td>Proves the model runs in a genuine, non-debug enclave before any list is sent</td><td><code>/v1/attestation/report</code> with a fresh nonce; quote checked against Intel PCS with <code>dcap-qvl</code>; the model key and nonce must be bound in the quote; the event log must replay to RTMR0-3, tying each instance's app compose to its quote; GPU evidence appraised by NVIDIA NRAS, tokens verified against NVIDIA's keys (<code>attest.py</code>)</td></tr>
   <tr><td>End-to-end encryption</td><td>Each firm encrypts its own list in its browser, straight to the enclave's key</td><td>Protocol v2: X25519 + HKDF-SHA256 + XChaCha20-Poly1305, a fresh ephemeral key per field (<code>e2ee.py</code>, <code>sealcrypto.js</code>)</td></tr>
   <tr><td>Signed responses</td><td>The enclave signs every request and reply, so a verdict can't be altered after the fact</td><td><code>/v1/signature/{chat_id}</code>, ed25519, checked against the attested key off-chain and on-chain (<code>nearai.py</code>)</td></tr>
 
@@ -287,7 +287,7 @@
   <h2>Not covered yet</h2>
   <div class="trust gaps" style="grid-template-columns:1fr">
     <div>The contract can't verify an Intel quote itself. It checks the enclave's signatures, and the proof bundle carries the raw attestation so anyone can check the key.</div>
-    <div>We don't replay RTMR3 against the app compose or check NVIDIA GPU attestation through NRAS.</div>
+    <div>The GPU evidence carries our nonce and passes NVIDIA's checks, but it isn't hash-bound to the TDX quote.</div>
     <div>The access rules run on our server. Running it as a Shade Agent inside a TEE is the next step.</div>
   </div>
 </section>

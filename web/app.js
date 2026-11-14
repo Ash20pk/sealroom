@@ -256,7 +256,8 @@ async function attest(fresh = false) {
     const tcb = model.tcb_status === "UpToDate" ? "firmware up to date" : model.tcb_status;
     $("#enclave-text").innerHTML = `Enclave verified<span class="extra">, ${esc(tcb)}</span>`;
     $("#model-name").textContent = model.model;
-    step("attest", "done", `Intel signed the quote. Model key <span class="mono">${short(model.signing_key, 8)}</span>`);
+    const gpu = model.gpu_status === "verified" ? ", NVIDIA passed the GPUs" : "";
+    step("attest", "done", `Intel signed the quote, RTMR3 replays to the app compose${gpu}. Model key <span class="mono">${short(model.signing_key, 8)}</span>`);
     if (fresh) toast("The enclave checked out again.");
   } catch (e) {
     model = null;

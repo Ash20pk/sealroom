@@ -150,6 +150,8 @@ def attest(fresh: bool = False):
         "Intel signed the TDX quotes for the gateway and the model",
         "The quote binds the model's key and our fresh nonce",
         "TDX debug mode is off",
+        "The event log replays to RTMR0-3, binding each instance's app compose to its quote",
+        "NVIDIA's attestation service passed every GPU, with tokens for our nonce",
     ]}
 
 

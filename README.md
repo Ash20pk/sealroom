@@ -19,6 +19,8 @@ Two-page overview, including every NEAR and NEAR AI Cloud piece we use: [docs/se
 | Each list really came from its firm | the NEAR contract | ed25519 signature by the firm's registered key over the list's commitment, ciphertext hash, exact-match set, counterparty and a one-time check id |
 | Exact name matches are complete | cryptography, no trust | private set intersection (DH over the Ed25519 prime-order group), every message signed by the sending firm |
 | The model ran in a genuine enclave | anyone, from the proof bundle | Intel-signed TDX quote binding the model key and a fresh nonce |
+| The enclave runs a known app compose | anyone, from the proof bundle | the event log replays to RTMR0-3 in the signed quote; the RTMR3 events are recomputed from their payloads, and `compose-hash` must equal `sha256(app_compose)` and match the report's `app_id` and `compose_hash` |
+| The model runs on genuine confidential GPUs | anyone, from the proof bundle | the GPU evidence goes to NVIDIA's attestation service (NRAS); its ES384 tokens are verified against NVIDIA's published keys and must pass overall, pass every GPU and carry our nonce |
 | The model saw exactly these lists and these instructions | anyone, from the proof bundle | every request is rebuilt byte for byte, including Sealroom's own encrypted instructions (their encryption randomness is disclosed), and must hash to what the enclave signed |
 | The verdict is what the model said | anyone, from the proof bundle | responses are decrypted with the disclosed reader key and the verdict is re-derived; its hash must match the one on NEAR |
 | The enclave signed every call | the NEAR contract | up to 48 TEE signatures verified on-chain per check |
@@ -26,6 +28,17 @@ Two-page overview, including every NEAR and NEAR AI Cloud piece we use: [docs/se
 | A lawyer approved each agent session | the NEAR contract | member's signature over agent, session, question hash and policy hash |
 | The agent ran its registered model and prompt | the NEAR contract | agent record pins model name and prompt hash; anything else cannot be sealed |
 | The agent can't do anything else on-chain | NEAR access keys | the agent account's only key is a function-call key for `seal_session` on this contract |
+
+The contract's `record_check` verifies both firms' signatures and up to 48 TEE signatures on-chain for every check, and refuses any signer that isn't the attested model or gateway key. A check that isn't backed by enclave signatures can't be recorded.
+
+### Why a contract and not the NEAR Agent API
+
+We use the same building blocks as the Agent API: each agent is its own NEAR account, and its only key is a function-call key with a gas allowance. What Sealroom needs on top of that is enforced by its own contract:
+
+- **TEE signatures checked on-chain.** `record_check` verifies every enclave signature against the attested model and gateway keys before anything is stored.
+- **Model and prompt pinning.** An agent record fixes its model name and prompt hash. A session run with anything else can't be sealed.
+- **Firm, member and agent hierarchy.** Firms register their sealing keys, members are sub-accounts with their own keys, and agents are owned by one member and revocable by the firm.
+- **Signed sessions.** `seal_session` re-checks the member's signature over the agent, session, question hash and policy hash, and stores the root of the decision log.
 
 ## Identity
 
@@ -63,7 +76,7 @@ $ uv run sealroom whoami research.sr-firm-south-64716.testnet
  disclose own matches, signed ─► named verdict, ranked by severity
 ```
 
-1. **Attest.** Fetch the model's attestation with a fresh nonce. Check Intel's signature on the TDX quote, that the quote binds the model key and nonce, and that debug mode is off.
+1. **Attest.** Fetch the model's attestation with a fresh nonce. Check Intel's signature on the TDX quote, that the quote binds the model key and nonce, and that debug mode is off. Replay the event log to the quote's RTMRs so the app compose each instance runs is bound to its quote, and have NVIDIA's NRAS appraise the GPUs.
 2. **Seal.** Each firm commits to its list (`sha256(salt ‖ list)`), splits it into numbered chunks, and encrypts each chunk to the model key in its own browser.
 3. **Exact tier.** The firms run a private set intersection over normalised names and aliases ("Vale Doce S.A." equals "Vale Doce", "Müller & Söhne GmbH & Co. KG" equals "Muller and Sohne"). Each learns only which of its entries match. This floor doesn't depend on any model.
 4. **Enclave tier.** Every pair of chunks goes to the model, which finds spelling variants, former names, parents and subsidiaries, affiliates and shared officers. It answers with entry numbers, a relationship type, a basis type and a confidence. Any number outside the chunks that call was shown is dropped. A reply that hits its output cap is continued until it isn't.
@@ -87,7 +100,7 @@ You need [uv](https://docs.astral.sh/uv/), Rust with `cargo-near`, and Node 20+ 
 cd app && uv sync && uv run pytest -q
 ```
 
-You should see **25 passed** (24 if Node isn't set up; see below). The engine tests run the full pipeline against a fake TEE that decrypts and signs the way NEAR AI does. They check the proof bundle catches seven kinds of tampering: verdict, response, instructions, envelope, exact-match transcript, firm key and a dropped call.
+You should see **34 passed** (33 if Node isn't set up; see below). The engine tests run the full pipeline against a fake TEE that decrypts and signs the way NEAR AI does. They check the proof bundle catches seven kinds of tampering: verdict, response, instructions, envelope, exact-match transcript, firm key and a dropped call. The attestation tests replay a real NEAR AI Cloud event log and check that a tampered RTMR3 event, app compose or info block is caught, and that NRAS tokens with the wrong key, wrong nonce, a failed GPU or a missing GPU are refused.
 
 ```bash
 cd web && npm install && npm test   # browser crypto vs Python, byte for byte
@@ -166,7 +179,8 @@ cd ../app && uv run sealroom setup
 ## Limits
 
 - **The contract can't check an Intel quote.** It checks that the TEE signed each call with the declared key. The proof bundle carries the raw attestation report, so anyone can confirm that the key belongs to a genuine enclave (`sealroom verify-bundle`).
-- **Attestation checks don't cover everything.** We don't replay RTMR3 against the app compose or check the NVIDIA GPU attestation through NRAS.
+- **The GPU evidence isn't hash-bound to the TDX quote.** Both carry our fresh nonce, and NVIDIA verifies the GPUs, but nothing in the quote commits to the GPU evidence. That those GPUs sit behind that CVM rests on NEAR AI's deployment.
+- **We check that the compose is bound, not what it says.** The proof bundle keeps the raw report, so each model instance's compose hash can be recomputed, and `sealroom attest` prints them. Pinning it to a reviewed allowlist is up to whoever relies on the check.
 - **The access rules run on the orchestrator.** Reads are decided before a document reaches the model, and the log is sealed and member-signed. But the documents are readable by whoever runs the server. Running the orchestrator itself as a Shade Agent in a TEE is the next step.
 - **The exact tier is semi-honest.** A firm that lies in its own exact-match messages can hide or invent matches on its side. Its signature makes that attributable, and its commitment can be opened later (`sealroom prove`).
 - **One check is capped at 48 signed model calls.** That's the contract's on-chain verification limit, about 18 Tgas measured. Chunk size grows with list size to fit, and a check that can't cover every chunk pair is marked truncated, on-chain and in the verdict.

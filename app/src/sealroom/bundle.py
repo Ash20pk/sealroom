@@ -131,7 +131,8 @@ def verify(b: dict, *, onchain: dict | None = None, firm_keys: dict[str, str] | 
             m = check_report(e["model"], raw_report, e["report_nonce"])
             same = m.signing_key.lower() == e["model_key"].lower() and m.gateway_key.lower() == e["gateway_key"].lower()
             (rep.ok if same else rep.bad)(
-                "Intel signed the TDX quotes, and they bind the model and gateway keys used here" if same
+                "Intel signed the TDX quotes, the event logs replay to RTMR3, NVIDIA passed the GPUs, "
+                "and the quotes bind the model and gateway keys used here" if same
                 else "The attested keys differ from the keys this check used")
         except AttestationError as err:
             rep.bad(f"Attestation report did not verify: {err}")
