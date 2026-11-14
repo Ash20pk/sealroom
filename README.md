@@ -1,16 +1,67 @@
 # Sealroom
 
-Conflict checks and ethical walls for legal AI, where nobody has to take anyone's word for it.
+Private conflict checks and ethical walls for legal AI. Verify the check, not the trust.
 
-When a partner moves firms, both firms have to check the partner's old clients against the new firm's clients. Today that means one side hands its client list to the other, or to a vendor. Sealroom runs the check without either firm showing its list. Once the partner joins, it also lets them use the firm's AI research agent with the conflicted clients walled off. Every party signs with an identity registered on NEAR, and every claim can be replayed by anyone.
+Two law firms need to check for client conflicts when a partner moves between them. Neither firm wants to hand its client list to the other. Sealroom runs the check without either firm showing its list, records every step on NEAR, and then walls off the conflicted clients from the firm's AI research agent.
 
-Built at NEAR HACKATHON for the **Privacy & Private AI** and **AI Security & Defense** tracks.
+1. Each firm seals its client list in its own browser, so nothing leaves it unencrypted
+2. Sealroom finds exact matches using private set intersection (cryptography, no model needed) and fuzzy matches using an AI model running in a TEE enclave on NEAR AI Cloud
+3. Every step is verified and recorded on NEAR, and anyone can replay the proof
+4. After the check, the partner can use the firm's AI research agent with conflicted clients automatically walled off
+
+```
+┌──────────┐                         ┌──────────┐
+│ Firm A   │                         │ Firm B   │
+│ (browser)│                         │ (browser)│
+└────┬─────┘                         └────┬─────┘
+     │  seal list: chunks encrypted       │
+     │  to the attested model key         │
+     ├──────────────┬─────────────────────┤
+     ▼              │                     ▼
+┌───────────────────┴──────────────────────────┐
+│  Private set intersection (DH over Ed25519)  │  exact name matches,
+│  every message signed by its firm            │  cryptography, no model
+└───────────────────┬──────────────────────────┘
+                    │  plus every encrypted chunk pair
+                    ▼
+┌──────────────────────────────────────────────┐
+│  TEE model on NEAR AI Cloud                  │  spelling variants, former
+│  Intel TDX + NVIDIA Hopper confidential GPUs │  names, parents, affiliates
+│  answers with entry numbers only, signed     │
+└───────────────────┬──────────────────────────┘
+                    ▼
+┌──────────────────────────────────────────────┐
+│  NEAR contract: record_check                 │  verifies both firm sigs and
+│  v2.sealroom-64716.testnet                   │  up to 48 TEE sigs on-chain
+└───────────────────┬──────────────────────────┘
+                    ▼
+   Each firm discloses only its own matched
+   entries, signed, ranked by severity:
+   high (client vs adverse), review (client
+   vs client), low (adverse vs adverse)
+```
+
+- **Live demo:** https://54-226-24-21.sslip.io (each visitor gets a few runs an hour; a check takes about two minutes)
+- **Contract:** [`v2.sealroom-64716.testnet`](https://testnet.nearblocks.io/address/v2.sealroom-64716.testnet), with 11 real conflict checks on testnet
+- **Model:** `z-ai/glm-5.3-flash` in an Intel TDX enclave with NVIDIA Hopper confidential GPUs, end-to-end encrypted
+- **Tests:** 34 Python + 13 Rust + 3 eval datasets, all passing, Python and datasets in CI
+- **Attestation:** Intel TDX quote + RTMR0-3 event-log replay + NVIDIA NRAS GPU verification, verified live
 
 Two-page overview, including every NEAR and NEAR AI Cloud piece we use: [docs/sealroom-how-it-works.pdf](docs/sealroom-how-it-works.pdf)
 
-- **Live demo: https://54-226-24-21.sslip.io** (each visitor gets a few runs an hour; a check takes about two minutes)
-- Contract: [`v2.sealroom-64716.testnet`](https://testnet.nearblocks.io/address/v2.sealroom-64716.testnet)
-- Model: an attested NEAR AI Cloud model in an Intel TDX enclave, end-to-end encrypted
+Built at [NEAR HACKATHON](https://nearhackathon.com) for the **Privacy & Private AI**, **AI Security & Defense**, **Open Innovation**, and **Agent Economy** tracks.
+
+## Judge it in 2 minutes
+
+```bash
+git clone https://github.com/Ash20pk/sealroom.git && cd sealroom/app && uv sync
+
+uv run pytest -q                    # 34 tests: engine, PSI, proof bundles, attestation, NRAS
+uv run sealroom attest              # verify the live TEE enclave (Intel TDX + RTMR3 + NVIDIA NRAS)
+uv run sealroom whoami research.sr-firm-south-64716.testnet   # the agent on NEAR testnet
+```
+
+Then open https://54-226-24-21.sslip.io and run a conflict check live, or check the [11 real checks on testnet](https://testnet.nearblocks.io/address/v2.sealroom-64716.testnet).
 
 ## What you can check yourself
 
@@ -62,20 +113,6 @@ $ uv run sealroom whoami research.sr-firm-south-64716.testnet
 
 ## How a check works
 
-```
- firm A (browser)            orchestrator (server)                 enclave (NEAR AI, TDX)     NEAR contract
- ────────────────            ─────────────────────                 ──────────────────────     ─────────────
- seal list in chunks ──┐
- blind names (PSI)     ├─ signed envelope ─► check sig vs NEAR key
- sign envelope       ──┘                     relay PSI messages ◄──► firm B (same steps)
-                                             exact pairs from signed PSI transcript
-                                             every chunk pair ─────────► entry numbers only ─┐
-                                             verify TEE signature ◄──────────────────────────┘
-                                             record_check ─────────────────────────────────────► verifies both firm sigs
-                                                                                                  + every TEE sig, stores hashes
- disclose own matches, signed ─► named verdict, ranked by severity
-```
-
 1. **Attest.** Fetch the model's attestation with a fresh nonce. Check Intel's signature on the TDX quote, that the quote binds the model key and nonce, and that debug mode is off. Replay the event log to the quote's RTMRs so the app compose each instance runs is bound to its quote, and have NVIDIA's NRAS appraise the GPUs.
 2. **Seal.** Each firm commits to its list (`sha256(salt ‖ list)`), splits it into numbered chunks, and encrypts each chunk to the model key in its own browser.
 3. **Exact tier.** The firms run a private set intersection over normalised names and aliases ("Vale Doce S.A." equals "Vale Doce", "Müller & Söhne GmbH & Co. KG" equals "Muller and Sohne"). Each learns only which of its entries match. This floor doesn't depend on any model.
@@ -83,12 +120,16 @@ $ uv run sealroom whoami research.sr-firm-south-64716.testnet
 5. **Record.** The contract checks both firms' signatures and every TEE signature, then stores the commitments, the verdict hash and a root over the signed calls.
 6. **Disclose.** Each firm reveals only its own matched entries, signed. Pairs are ranked: client vs adverse is *direct adversity*, client vs client goes to *review*, adverse vs adverse is *low*.
 
-## How an agent session works
+## AI agent with ethical walls
+
+After the conflict check, the partner can use the firm's AI research agent, but the agent can't read documents about clients the check flagged. This is the second half of Sealroom: not just finding conflicts, but enforcing them at the agent level.
 
 1. A member picks the agent and asks a question. The server builds the session: the walls from the latest conflict check, a policy hash and a question hash.
 2. The member signs it in the browser. The server checks the signature against the member's key on NEAR, and that the agent is active, in the same firm, and running its registered prompt and model.
 3. Every document read is decided before anything reaches the model. A refused read always gets the same reply, so the agent can't probe which clients the firm acts for. Each decision goes into a hash chain.
 4. The agent seals the chain's root from its own account. The contract re-checks the member's signature, the model and the prompt hash.
+
+Put together, the walls work as a policy layer: access control (walled-off clients are refused before the model sees them), tamper-evident logging (hash-chained decisions sealed on NEAR), and an agent account that can only call `seal_session`, with a 0.5 NEAR gas allowance.
 
 ## Run it
 
@@ -191,9 +232,18 @@ cd ../app && uv run sealroom setup
 
 ```
 contract/       NEAR contract (Rust): identity registry, check records, session seals
-app/sealroom/   engine (conflict.py), PSI (psi.py), proof bundles (bundle.py), identity,
-                E2EE + attestation, agent + access rules (room.py), CLI, web server, eval
+app/src/sealroom/  engine (conflict.py), PSI (psi.py), proof bundles (bundle.py), identity,
+                   E2EE + attestation, agent + access rules (room.py), CLI, web server, eval
 web/            the browser app; sealcrypto.js mirrors the Python crypto
 demo/           demo lists, agent library, labels
 eval/           labelled cases and the generator
 ```
+
+## Reach me
+
+Built by Aswin Kumar. Questions, feedback, or want to try it on real conflict data? Get in touch.
+
+- X: [@ash20pk](https://x.com/ash20pk)
+- LinkedIn: [Aswin Kumar](https://www.linkedin.com/in/aswin-kumar-7399971b3/)
+- Email: [ash20pk@gmail.com](mailto:ash20pk@gmail.com)
+- GitHub: [@Ash20pk](https://github.com/Ash20pk)
