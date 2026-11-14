@@ -516,6 +516,52 @@ mod tests {
     }
 
     #[test]
+    fn truncated_check_at_the_call_cap_is_recorded_as_truncated() {
+        // A check that could not cover every chunk pair within MAX_CALLS signed
+        // calls is submitted with truncated=true; the record must keep that flag
+        // and the full call count so a reader sees the verdict is partial.
+        let mut c = setup();
+        as_caller("op.testnet");
+        let calls = (0..MAX_CALLS).map(|_| call(&key(8))).collect::<Vec<_>>();
+        let id = c.record_check(
+            REF.into(),
+            envelope("north.testnet", "incoming", "south.testnet", &key(1)),
+            envelope("south.testnet", "existing", "north.testnet", &key(2)),
+            H.into(), 2, 1, true, engine(&key(8)), calls,
+        );
+        let got = c.get_check(id).unwrap();
+        assert!(got.truncated);
+        assert_eq!(got.calls as usize, MAX_CALLS);
+        assert!(c.list_checks(None, None)[0].truncated);
+    }
+
+    #[test]
+    fn complete_check_is_recorded_as_not_truncated() {
+        let mut c = setup();
+        as_caller("op.testnet");
+        let id = record(
+            &mut c,
+            envelope("north.testnet", "incoming", "south.testnet", &key(1)),
+            envelope("south.testnet", "existing", "north.testnet", &key(2)),
+            vec![call(&key(8))],
+        );
+        assert!(!c.get_check(id).unwrap().truncated);
+    }
+
+    #[test]
+    #[should_panic(expected = "1-48 signed calls required")]
+    fn more_calls_than_the_cap_rejected() {
+        let mut c = setup();
+        as_caller("op.testnet");
+        record(
+            &mut c,
+            envelope("north.testnet", "incoming", "south.testnet", &key(1)),
+            envelope("south.testnet", "existing", "north.testnet", &key(2)),
+            (0..=MAX_CALLS).map(|_| call(&key(8))).collect(),
+        );
+    }
+
+    #[test]
     #[should_panic(expected = "existing firm signature is invalid")]
     fn forged_firm_signature_rejected() {
         let mut c = setup();
